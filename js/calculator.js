@@ -87,8 +87,13 @@ export function monthlyGrowthSeries({ contributions, currentValue }) {
   const rate = (lo + hi) / 2;
   const finalSeries = simulate(rate);
 
-  return monthlyAmounts.map((amount, idx) => ({
-    monthIndex: idx,
-    value: finalSeries[idx],
-  }));
+  return monthlyAmounts.map((amount, idx) => {
+    const key = firstKey + idx;
+    const month = (key % 12) + 1;
+    return {
+      monthIndex: idx,
+      value: finalSeries[idx],
+      label: '01.' + String(month).padStart(2, '0'),
+    };
+  });
 }

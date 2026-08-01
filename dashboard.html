@@ -199,25 +199,29 @@
         svg.innerHTML = '<text x="20" y="110" fill="var(--muted)" font-size="14">Brak jeszcze wpłat.</text>';
         return;
       }
-      const w = 640, h = 220, pad = 30;
+      const w = 640, h = 260, padTop = 20, padBottom = 60, padSide = 30;
       const values = series.map((v) => v.value);
       const min = Math.min(...values, 0);
       const max = Math.max(...values, 1);
       const range = max - min || 1;
-      const step = series.length > 1 ? (w - pad * 2) / (series.length - 1) : 0;
+      const plotH = h - padTop - padBottom;
+      const step = series.length > 1 ? (w - padSide * 2) / (series.length - 1) : 0;
 
       const points = series.map((v, i) => {
-        const x = pad + i * step;
-        const y = h - pad - ((v.value - min) / range) * (h - pad * 2);
+        const x = padSide + i * step;
+        const y = padTop + plotH - ((v.value - min) / range) * plotH;
         return [x, y];
       });
 
-      const path = points.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+      svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
       const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#16a34a';
+      const muted = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#8a8a8a';
 
       let svgContent = `<polyline points="${points.map((p) => p.join(',')).join(' ')}" fill="none" stroke="${accent}" stroke-width="2.5" />`;
-      points.forEach((p) => {
+      points.forEach((p, i) => {
         svgContent += `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${accent}" />`;
+        const labelY = h - padBottom + 14;
+        svgContent += `<text x="${p[0]}" y="${labelY}" fill="${muted}" font-size="9" text-anchor="end" transform="rotate(-45 ${p[0]} ${labelY})">${series[i].label || ''}</text>`;
       });
       svg.innerHTML = svgContent;
     }
