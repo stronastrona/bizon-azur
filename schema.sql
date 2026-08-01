@@ -14,13 +14,32 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+-- Pomocnicza funkcja SECURITY DEFINER do sprawdzania czy caller jest adminem.
+-- WAZNE: polityka RLS na tabeli profiles NIE MOZE odpytywac wprost tabeli
+-- profiles w swoim "using" (np. `exists (select 1 from public.profiles ...)`),
+-- bo taki podzapytanie samo podlega RLS na profiles, co wywoluje te sama
+-- polityke ponownie -> nieskonczona rekurencja ("infinite recursion detected
+-- in policy for relation profiles"). Funkcja SECURITY DEFINER omija RLS
+-- (dziala z uprawnieniami wlasciciela funkcji), wiec nie ma tego problemu.
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select coalesce((select is_admin from public.profiles where id = auth.uid()), false);
+$$;
+
+grant execute on function public.is_admin() to authenticated;
+
 create policy "profiles: user reads own row"
   on public.profiles for select
   using (id = auth.uid());
 
 create policy "profiles: admin reads all rows"
   on public.profiles for select
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
+  using (public.is_admin());
 
 -- ============================================================
 -- 2. WPLATY
@@ -41,19 +60,19 @@ create policy "contributions: partner reads own"
 
 create policy "contributions: admin reads all"
   on public.contributions for select
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
+  using (public.is_admin());
 
 create policy "contributions: admin writes"
   on public.contributions for insert
-  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
+  with check (public.is_admin());
 
 create policy "contributions: admin updates"
   on public.contributions for update
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
+  using (public.is_admin());
 
 create policy "contributions: admin deletes"
   on public.contributions for delete
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
+  using (public.is_admin());
 
 -- ============================================================
 -- 3. WYCENY PORTFELA (calosc puli, wpisywana recznie przez admina)
@@ -73,15 +92,15 @@ create policy "valuations: any logged-in partner reads"
 
 create policy "valuations: admin writes"
   on public.portfolio_valuations for insert
-  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
+  with check (public.is_admin());
 
 create policy "valuations: admin updates"
   on public.portfolio_valuations for update
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
+  using (public.is_admin());
 
 create policy "valuations: admin deletes"
   on public.portfolio_valuations for delete
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
+  using (public.is_admin());
 
 -- ============================================================
 -- 4. SILNIK JEDNOSTEK UCZESTNICTWA (NAV) - SECURITY DEFINER
