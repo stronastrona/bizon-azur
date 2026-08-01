@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logowanie — Bizon Azur Inwestycje Długoterminowe</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap-narrow">
+    <div class="logo" style="justify-content:center; margin-bottom: 24px; flex-direction:column; align-items:center; gap:4px;">
+      <span class="mark">Bizon <span>Azur</span></span>
+      <span class="tag">Inwestycje Długoterminowe</span>
+    </div>
+
+    <div class="card">
+      <h2>Logowanie</h2>
+      <form id="login-form">
+        <div class="field">
+          <label for="email">E-mail lub nick</label>
+          <input id="email" type="text" required autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="password">Hasło</label>
+          <input id="password" type="password" required autocomplete="current-password">
+        </div>
+        <p id="login-error" class="error-msg" hidden></p>
+        <button type="submit" id="login-submit" style="width:100%;">Zaloguj</button>
+      </form>
+      <p class="hint" style="text-align:center; margin-top:14px;">
+        <a href="#" id="reset-link">Nie pamiętasz hasła?</a>
+      </p>
+    </div>
+    <footer class="page-footer">Dostęp tylko dla wspólników. Konta zakłada administrator.</footer>
+  </div>
+
+  <script type="module">
+    import { supabase } from './js/supabaseClient.js';
+
+    const form = document.getElementById('login-form');
+    const errorEl = document.getElementById('login-error');
+    const submitBtn = document.getElementById('login-submit');
+
+    // Jesli sesja juz istnieje, przejdz od razu do panelu.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) window.location.href = 'dashboard.html';
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.hidden = true;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Logowanie...';
+
+      const identifier = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      let email = identifier;
+      if (!identifier.includes('@')) {
+        const { data: resolvedEmail, error: lookupError } = await supabase.rpc('email_for_username', { uname: identifier });
+        if (lookupError || !resolvedEmail) {
+          errorEl.textContent = 'Nie znaleziono konta o takim nicku.';
+          errorEl.hidden = false;
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Zaloguj';
+          return;
+        }
+        email = resolvedEmail;
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        errorEl.textContent = 'Nieprawidłowy e-mail lub hasło.';
+        errorEl.hidden = false;
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Zaloguj';
+        return;
+      }
+
+      window.location.href = 'dashboard.html';
+    });
+
+    document.getElementById('reset-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      const identifier = document.getElementById('email').value.trim();
+      if (!identifier) {
+        errorEl.textContent = 'Wpisz najpierw swój e-mail lub nick powyżej, a potem kliknij link resetu.';
+        errorEl.hidden = false;
+        return;
+      }
+      let email = identifier;
+      if (!identifier.includes('@')) {
+        const { data: resolvedEmail } = await supabase.rpc('email_for_username', { uname: identifier });
+        if (!resolvedEmail) {
+          errorEl.textContent = 'Nie znaleziono konta o takim nicku.';
+          errorEl.hidden = false;
+          return;
+        }
+        email = resolvedEmail;
+      }
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + window.location.pathname.replace('index.html', '') + 'index.html',
+      });
+      errorEl.hidden = false;
+      errorEl.style.color = 'var(--muted)';
+      errorEl.textContent = error ? 'Nie udało się wysłać e-maila resetującego.' : 'Jeśli konto istnieje, e-mail z linkiem do resetu został wysłany.';
+    });
+  </script>
+</body>
+</html>

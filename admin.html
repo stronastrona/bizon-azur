@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel admina — Bizon Azur Inwestycje Długoterminowe</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div class="logo">
+        <span class="mark">Bizon <span>Azur</span></span>
+        <span class="tag">Panel admina</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <a href="dashboard.html" class="badge" style="text-decoration:none;">Mój panel</a>
+        <button class="secondary" id="logout-btn">Wyloguj</button>
+      </div>
+    </header>
+
+    <h1>Zarządzanie danymi</h1>
+    <p class="sub">Dodawaj wpłaty wspólników i aktualizuj wycenę wspólnego portfela. Zmiany są widoczne dla wszystkich od razu po zapisaniu.</p>
+
+    <div id="loading" class="card">Wczytywanie...</div>
+
+    <div id="content" hidden>
+      <section class="card">
+        <h2>Dodaj wpłatę</h2>
+        <form id="contrib-form">
+          <div class="form-row">
+            <div class="field">
+              <label for="c-partner">Wspólnik</label>
+              <select id="c-partner" required></select>
+            </div>
+            <div class="field">
+              <label for="c-amount">Kwota (zł)</label>
+              <input id="c-amount" type="number" min="1" step="1" required>
+            </div>
+            <div class="field">
+              <label for="c-date">Data wpłaty</label>
+              <input id="c-date" type="date" required>
+            </div>
+          </div>
+          <button type="submit">Zapisz wpłatę</button>
+          <p id="contrib-msg" class="hint"></p>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Dodaj wycenę portfela</h2>
+        <form id="valuation-form">
+          <div class="form-row">
+            <div class="field">
+              <label for="v-date">Data wyceny</label>
+              <input id="v-date" type="date" required>
+            </div>
+            <div class="field">
+              <label for="v-value">Łączna wartość portfela (zł)</label>
+              <input id="v-value" type="number" min="0" step="1" required>
+            </div>
+          </div>
+          <button type="submit">Zapisz wycenę</button>
+          <p id="valuation-msg" class="hint"></p>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Podsumowanie wspólników</h2>
+        <table>
+          <thead><tr><th>Wspólnik</th><th>Wpłacił</th><th>Wartość obecna</th><th>Zysk</th><th>Zwrot</th></tr></thead>
+          <tbody id="summary-tbody"></tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2>Ostatnie wpłaty</h2>
+        <table>
+          <thead><tr><th>Data</th><th>Wspólnik</th><th>Kwota</th></tr></thead>
+          <tbody id="contrib-tbody"></tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2>Historia wycen portfela</h2>
+        <table>
+          <thead><tr><th>Data</th><th>Wartość portfela</th></tr></thead>
+          <tbody id="valuation-tbody"></tbody>
+        </table>
+      </section>
+    </div>
+  </div>
+
+  <script type="module">
+    import { supabase } from './js/supabaseClient.js';
+    import { requireAdmin, wireLogout } from './js/auth.js';
+
+    const money = (n) => (n ?? 0).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 });
+
+    let partners = [];
+
+    async function loadAll() {
+      const [{ data: profiles }, { data: summaryRows }, { data: contributions }, { data: valuations }] = await Promise.all([
+        supabase.from('profiles').select('id, full_name').order('full_name'),
+        supabase.rpc('partner_summary'),
+        supabase.from('contributions').select('id, amount, contributed_at, partner_id').order('contributed_at', { ascending: false }).limit(50),
+        supabase.from('portfolio_valuations').select('id, valuation_date, total_value').order('valuation_date', { ascending: false }).limit(50),
+      ]);
+
+      partners = profiles || [];
+      const nameById = Object.fromEntries(partners.map((p) => [p.id, p.full_name]));
+
+      const partnerSelect = document.getElementById('c-partner');
+      partnerSelect.innerHTML = partners.map((p) => `<option value="${p.id}">${p.full_name}</option>`).join('');
+
+      const summaryBody = document.getElementById('summary-tbody');
+      summaryBody.innerHTML = (summaryRows || []).map((r) => `
+        <tr>
+          <td>${r.full_name}</td>
+          <td>${money(r.total_contributed)}</td>
+          <td>${money(r.current_value)}</td>
+          <td>${money(r.profit)}</td>
+          <td>${r.return_pct >= 0 ? '+' : ''}${Number(r.return_pct).toFixed(1)}%</td>
+        </tr>`).join('');
+
+      const contribBody = document.getElementById('contrib-tbody');
+      contribBody.innerHTML = (contributions || []).map((c) => `
+        <tr><td>${new Date(c.contributed_at).toLocaleDateString('pl-PL')}</td><td>${nameById[c.partner_id] || '—'}</td><td>${money(c.amount)}</td></tr>
+      `).join('');
+
+      const valuationBody = document.getElementById('valuation-tbody');
+      valuationBody.innerHTML = (valuations || []).map((v) => `
+        <tr><td>${new Date(v.valuation_date).toLocaleDateString('pl-PL')}</td><td>${money(v.total_value)}</td></tr>
+      `).join('');
+    }
+
+    (async () => {
+      const ctx = await requireAdmin();
+      if (!ctx) return;
+      wireLogout('logout-btn');
+
+      document.getElementById('c-date').valueAsDate = new Date();
+      document.getElementById('v-date').valueAsDate = new Date();
+
+      await loadAll();
+      document.getElementById('loading').hidden = true;
+      document.getElementById('content').hidden = false;
+
+      document.getElementById('contrib-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('contrib-msg');
+        msg.textContent = 'Zapisywanie...';
+        const { error } = await supabase.from('contributions').insert({
+          partner_id: document.getElementById('c-partner').value,
+          amount: Number(document.getElementById('c-amount').value),
+          contributed_at: document.getElementById('c-date').value,
+        });
+        msg.textContent = error ? 'Błąd zapisu: ' + error.message : 'Zapisano.';
+        if (!error) {
+          document.getElementById('c-amount').value = '';
+          await loadAll();
+        }
+      });
+
+      document.getElementById('valuation-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('valuation-msg');
+        msg.textContent = 'Zapisywanie...';
+        const { error } = await supabase.from('portfolio_valuations').insert({
+          valuation_date: document.getElementById('v-date').value,
+          total_value: Number(document.getElementById('v-value').value),
+        });
+        msg.textContent = error ? 'Błąd zapisu: ' + error.message : 'Zapisano.';
+        if (!error) {
+          document.getElementById('v-value').value = '';
+          await loadAll();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

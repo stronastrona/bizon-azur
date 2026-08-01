@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel wspólnika — Bizon Azur Inwestycje Długoterminowe</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div class="logo">
+        <span class="mark">Bizon <span>Azur</span></span>
+        <span class="tag">Panel wspólnika</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span id="admin-link-wrap" hidden><a href="admin.html" class="badge" style="text-decoration:none;">Panel admina</a></span>
+        <button class="secondary" id="logout-btn">Wyloguj</button>
+      </div>
+    </header>
+
+    <h1 id="greeting">Witaj</h1>
+    <p class="sub">Podsumowanie Twojego udziału we wspólnym portfelu (ETF-y, obligacje, lokaty).</p>
+
+    <div id="loading" class="card">Wczytywanie danych...</div>
+
+    <div id="content" hidden>
+      <div class="grid-stats">
+        <div class="card stat">
+          <div class="label">Łącznie wpłaciłeś/aś</div>
+          <div class="value" id="stat-contributed">—</div>
+        </div>
+        <div class="card stat">
+          <div class="label">Zysk do tej pory</div>
+          <div class="value" id="stat-profit">—</div>
+          <div class="sub-value" id="stat-return-pct">—</div>
+        </div>
+        <div class="card stat">
+          <div class="label">Możesz teraz wypłacić</div>
+          <div class="value" id="stat-current-value">—</div>
+        </div>
+      </div>
+
+      <section class="card">
+        <h2>Historia Twoich wpłat</h2>
+        <table id="contrib-table">
+          <thead><tr><th>Data</th><th>Kwota</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p id="no-contrib" class="hint" hidden>Brak zarejestrowanych wpłat.</p>
+      </section>
+
+      <section class="card">
+        <h2>Wzrost wartości puli inwestycyjnej</h2>
+        <div id="chart-wrap"><svg class="chart" id="value-chart" viewBox="0 0 640 220"></svg></div>
+        <p class="hint">Wartość całego wspólnego portfela w czasie, na podstawie wycen wpisanych przez administratora.</p>
+      </section>
+
+      <section class="card">
+        <h2>Kalkulator przyszłego zysku</h2>
+        <p class="hint" style="margin-top:-6px; margin-bottom:16px;">Prognoza oparta o Twój obecny stan konta i założoną stopę zwrotu. To symulacja, nie gwarancja zysku.</p>
+        <div class="form-row">
+          <div class="field">
+            <label for="calc-current-monthly">Obecna miesięczna wpłata (zł)</label>
+            <input id="calc-current-monthly" type="number" min="0" step="10">
+          </div>
+          <div class="field">
+            <label for="calc-increased-monthly">Zwiększona miesięczna wpłata (zł)</label>
+            <input id="calc-increased-monthly" type="number" min="0" step="10">
+          </div>
+          <div class="field">
+            <label for="calc-rate">Zakładany roczny zwrot (%)</label>
+            <input id="calc-rate" type="number" min="0" step="0.1" value="6">
+          </div>
+          <div class="field">
+            <label for="calc-years">Horyzont (lata)</label>
+            <input id="calc-years" type="number" min="1" max="40" step="1" value="10">
+          </div>
+        </div>
+
+        <div class="scenario-compare" style="margin-top:10px;">
+          <div class="card">
+            <h3>Przy obecnym tempie wpłat</h3>
+            <div class="stat">
+              <div class="label">Wartość za <span class="calc-years-label">10</span> lat</div>
+              <div class="value" id="calc-current-value">—</div>
+              <div class="sub-value" id="calc-current-profit">—</div>
+            </div>
+          </div>
+          <div class="card increased">
+            <h3>Przy zwiększonej wpłacie</h3>
+            <div class="stat">
+              <div class="label">Wartość za <span class="calc-years-label">10</span> lat</div>
+              <div class="value" id="calc-increased-value">—</div>
+              <div class="sub-value" id="calc-increased-profit">—</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="page-footer">Dane aktualizowane ręcznie przez administratora spółki na podstawie wyciągów maklerskich.</footer>
+  </div>
+
+  <script type="module">
+    import { supabase } from './js/supabaseClient.js';
+    import { requireSession, wireLogout } from './js/auth.js';
+    import { compareScenarios } from './js/calculator.js';
+
+    const money = (n) => (n ?? 0).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 });
+
+    (async () => {
+      const ctx = await requireSession();
+      if (!ctx) return;
+      const { session, profile } = ctx;
+
+      wireLogout('logout-btn');
+      document.getElementById('greeting').textContent = 'Witaj, ' + profile.full_name;
+      if (profile.is_admin) document.getElementById('admin-link-wrap').hidden = false;
+
+      const [{ data: summaryRows, error: summaryErr }, { data: contributions }, { data: valuations }] = await Promise.all([
+        supabase.rpc('partner_summary'),
+        supabase.from('contributions').select('amount, contributed_at').eq('partner_id', session.user.id).order('contributed_at', { ascending: false }),
+        supabase.from('portfolio_valuations').select('valuation_date, total_value').order('valuation_date', { ascending: true }),
+      ]);
+
+      document.getElementById('loading').hidden = true;
+      document.getElementById('content').hidden = false;
+
+      const summary = (summaryRows || []).find((r) => r.partner_id === session.user.id) || {
+        total_contributed: 0, current_value: 0, profit: 0, return_pct: 0,
+      };
+      if (summaryErr) console.error(summaryErr);
+
+      document.getElementById('stat-contributed').textContent = money(summary.total_contributed);
+      document.getElementById('stat-current-value').textContent = money(summary.current_value);
+      const profitEl = document.getElementById('stat-profit');
+      profitEl.textContent = money(summary.profit);
+      profitEl.classList.add(summary.profit >= 0 ? 'profit-positive' : 'profit-negative');
+      document.getElementById('stat-return-pct').textContent = (summary.return_pct >= 0 ? '+' : '') + summary.return_pct.toFixed(1) + '% od początku';
+
+      const tbody = document.querySelector('#contrib-table tbody');
+      if (!contributions || contributions.length === 0) {
+        document.getElementById('no-contrib').hidden = false;
+      } else {
+        contributions.forEach((c) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${new Date(c.contributed_at).toLocaleDateString('pl-PL')}</td><td>${money(c.amount)}</td>`;
+          tbody.appendChild(tr);
+        });
+      }
+
+      drawChart(valuations || []);
+
+      // --- Kalkulator ---
+      const currentMonthlyInput = document.getElementById('calc-current-monthly');
+      const increasedMonthlyInput = document.getElementById('calc-increased-monthly');
+      const rateInput = document.getElementById('calc-rate');
+      const yearsInput = document.getElementById('calc-years');
+
+      const estimatedMonthly = estimateMonthlyContribution(contributions || []);
+      currentMonthlyInput.value = estimatedMonthly.toFixed(0);
+      increasedMonthlyInput.value = Math.round(estimatedMonthly * 1.5).toFixed(0);
+
+      function runCalculator() {
+        const years = Math.max(1, Math.min(40, Number(yearsInput.value) || 10));
+        document.querySelectorAll('.calc-years-label').forEach((el) => (el.textContent = years));
+
+        const { current, increased } = compareScenarios({
+          currentValue: summary.current_value,
+          alreadyContributed: summary.total_contributed,
+          annualRatePct: Number(rateInput.value) || 0,
+          years,
+          currentMonthly: Number(currentMonthlyInput.value) || 0,
+          increasedMonthly: Number(increasedMonthlyInput.value) || 0,
+        });
+
+        const last = (arr) => arr[arr.length - 1];
+        document.getElementById('calc-current-value').textContent = money(last(current).value);
+        document.getElementById('calc-current-profit').textContent = 'zysk: ' + money(last(current).profit);
+        document.getElementById('calc-increased-value').textContent = money(last(increased).value);
+        document.getElementById('calc-increased-profit').textContent = 'zysk: ' + money(last(increased).profit);
+      }
+
+      [currentMonthlyInput, increasedMonthlyInput, rateInput, yearsInput].forEach((el) => el.addEventListener('input', runCalculator));
+      runCalculator();
+    })();
+
+    function estimateMonthlyContribution(contributions) {
+      if (!contributions || contributions.length === 0) return 0;
+      const dates = contributions.map((c) => new Date(c.contributed_at).getTime());
+      const spanMonths = Math.max(1, (Math.max(...dates) - Math.min(...dates)) / (1000 * 60 * 60 * 24 * 30.44) + 1);
+      const total = contributions.reduce((s, c) => s + Number(c.amount), 0);
+      return total / spanMonths;
+    }
+
+    function drawChart(valuations) {
+      const svg = document.getElementById('value-chart');
+      if (!valuations || valuations.length === 0) {
+        svg.innerHTML = '<text x="20" y="110" fill="var(--muted)" font-size="14">Brak jeszcze wycen portfela.</text>';
+        return;
+      }
+      const w = 640, h = 220, pad = 30;
+      const values = valuations.map((v) => Number(v.total_value));
+      const min = Math.min(...values, 0);
+      const max = Math.max(...values, 1);
+      const range = max - min || 1;
+      const step = valuations.length > 1 ? (w - pad * 2) / (valuations.length - 1) : 0;
+
+      const points = valuations.map((v, i) => {
+        const x = pad + i * step;
+        const y = h - pad - ((Number(v.total_value) - min) / range) * (h - pad * 2);
+        return [x, y];
+      });
+
+      const path = points.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#16a34a';
+
+      let svgContent = `<polyline points="${points.map((p) => p.join(',')).join(' ')}" fill="none" stroke="${accent}" stroke-width="2.5" />`;
+      points.forEach((p) => {
+        svgContent += `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${accent}" />`;
+      });
+      svg.innerHTML = svgContent;
+    }
+  </script>
+</body>
+</html>
