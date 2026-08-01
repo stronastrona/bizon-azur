@@ -38,3 +38,57 @@ export function compareScenarios({ currentValue, annualRatePct, years, alreadyCo
     increased: projectTimeline({ currentValue, monthlyContribution: increasedMonthly, annualRatePct, years, alreadyContributed }),
   };
 }
+
+// Szacowana, wygladzona historia wzrostu kapitalu wspolnika miesiac po
+// miesiacu. Nie mamy comiesiecznych wycen portfela z przeszlosci (admin
+// wpisuje je od czasu do czasu), wiec zamiast pojedynczego punktu
+// wyliczamy STALA srednia miesieczna stope zwrotu, ktora - zastosowana do
+// realnej historii wplat wspolnika - daje dokladnie jego dzisiejsza,
+// prawdziwa wartosc (z silnika jednostek uczestnictwa). To szacunek, nie
+// dokladna historia.
+export function monthlyGrowthSeries({ contributions, currentValue }) {
+  if (!contributions || contributions.length === 0 || currentValue <= 0) return [];
+
+  const byMonth = new Map();
+  contributions.forEach((c) => {
+    const d = new Date(c.contributed_at);
+    const key = d.getFullYear() * 12 + d.getMonth();
+    byMonth.set(key, (byMonth.get(key) || 0) + Number(c.amount));
+  });
+
+  const keys = [...byMonth.keys()];
+  const firstKey = Math.min(...keys);
+  const now = new Date();
+  const lastKey = now.getFullYear() * 12 + now.getMonth();
+
+  const monthlyAmounts = [];
+  for (let k = firstKey; k <= lastKey; k++) monthlyAmounts.push(byMonth.get(k) || 0);
+
+  const simulate = (rate) => {
+    let value = 0;
+    const series = [];
+    monthlyAmounts.forEach((amount) => {
+      value = value * (1 + rate) + amount;
+      series.push(value);
+    });
+    return series;
+  };
+
+  // Bisekcja: szukamy stalej stopy miesiecznej, ktora daje na koncu
+  // dokladnie znana, prawdziwa biezaca wartosc.
+  let lo = -0.2;
+  let hi = 0.2;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    const end = simulate(mid).pop();
+    if (end < currentValue) lo = mid;
+    else hi = mid;
+  }
+  const rate = (lo + hi) / 2;
+  const finalSeries = simulate(rate);
+
+  return monthlyAmounts.map((amount, idx) => ({
+    monthIndex: idx,
+    value: finalSeries[idx],
+  }));
+}
