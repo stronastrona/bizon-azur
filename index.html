@@ -5,9 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Logowanie — Bizon Azur Inwestycje Długoterminowe</title>
 <link rel="stylesheet" href="style.css">
+<script src="js/theme.js"></script>
 </head>
 <body>
   <div class="wrap-narrow">
+    <div class="theme-switcher">
+      <button type="button" class="theme-swatch" data-theme-choice="dark-orange" title="Czarno-pomarańczowy" onclick="setBizonTheme('dark-orange')"></button>
+      <button type="button" class="theme-swatch" data-theme-choice="light-orange" title="Biało-pomarańczowy" onclick="setBizonTheme('light-orange')"></button>
+      <button type="button" class="theme-swatch" data-theme-choice="light-pink" title="Biało-niebiesko-różowy" onclick="setBizonTheme('light-pink')"></button>
+    </div>
+
     <div class="logo" style="justify-content:center; margin-bottom: 24px; flex-direction:column; align-items:center; gap:4px;">
       <span class="mark">Bizon <span>Azur</span></span>
       <span class="tag">Inwestycje Długoterminowe</span>
