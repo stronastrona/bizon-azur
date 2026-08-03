@@ -73,6 +73,54 @@
   --mono: "SF Mono", "Cascadia Code", Consolas, "Roboto Mono", monospace;
 }
 
+[data-theme="light-green"] {
+  color-scheme: light;
+  --bg: #f7fefa;
+  --bg-elevated: #ffffff;
+  --card: #ffffff;
+  --card-hover: #ecfdf3;
+  --border: #d7f5e3;
+  --text: #12271b;
+  --muted: #5f7268;
+  --accent-rgb: 0, 230, 118;
+  --accent: #00e676;
+  --accent-bright: #00c853;
+  --accent-dim: #e3fcec;
+  --danger: #dc2626;
+  --danger-dim: #fee2e2;
+  --button-text: #062012;
+  --radial-bg: radial-gradient(circle at 15% 0%, rgba(var(--accent-rgb), 0.08), transparent 40%);
+  --logo-glow: 0 0 10px rgba(var(--accent-rgb), 0.35);
+  --btn-shadow: 0 4px 14px rgba(var(--accent-rgb), 0.3);
+  --increased-shadow: 0 4px 14px rgba(var(--accent-rgb), 0.18);
+  --badge-border: rgba(var(--accent-rgb), 0.35);
+  --mono: "SF Mono", "Cascadia Code", Consolas, "Roboto Mono", monospace;
+}
+
+[data-theme="light-red"] {
+  color-scheme: light;
+  --bg: #fffaf9;
+  --bg-elevated: #ffffff;
+  --card: #ffffff;
+  --card-hover: #fff1f0;
+  --border: #ffdad6;
+  --text: #2a1210;
+  --muted: #78615e;
+  --accent-rgb: 255, 23, 68;
+  --accent: #ff1744;
+  --accent-bright: #d50000;
+  --accent-dim: #ffe1e1;
+  --danger: #b71c1c;
+  --danger-dim: #ffe1e1;
+  --button-text: #ffffff;
+  --radial-bg: radial-gradient(circle at 15% 0%, rgba(var(--accent-rgb), 0.08), transparent 40%);
+  --logo-glow: 0 0 10px rgba(var(--accent-rgb), 0.35);
+  --btn-shadow: 0 4px 14px rgba(var(--accent-rgb), 0.3);
+  --increased-shadow: 0 4px 14px rgba(var(--accent-rgb), 0.18);
+  --badge-border: rgba(var(--accent-rgb), 0.35);
+  --mono: "SF Mono", "Cascadia Code", Consolas, "Roboto Mono", monospace;
+}
+
 * { box-sizing: border-box; }
 html, body {
   margin: 0;
@@ -198,25 +246,58 @@ footer.page-footer { margin-top: 32px; font-size: 0.78rem; color: var(--muted); 
   letter-spacing: 0.04em;
 }
 
-/* --- Przelacznik motywu (strona logowania) --- */
+/* --- Przelacznik motywu (strona logowania) - karuzela --- */
 .theme-switcher {
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 28px;
 }
+.theme-arrow {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  box-shadow: none;
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.theme-arrow:hover { border-color: var(--accent); filter: none; }
+.theme-track {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 .theme-swatch {
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   border: 2px solid #ffffff33;
   cursor: pointer;
   padding: 0;
   box-shadow: none;
   position: relative;
+  opacity: 0.5;
+  transition: opacity 0.15s ease, transform 0.15s ease, width 0.15s ease, height 0.15s ease;
+  flex-shrink: 0;
 }
-.theme-swatch:hover { transform: translateY(-2px); }
-.theme-swatch.active { border-color: var(--text); box-shadow: 0 0 0 2px var(--accent); }
+.theme-swatch:hover { transform: translateY(-2px); opacity: 0.8; }
+.theme-swatch.center {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  opacity: 1;
+}
+.theme-swatch.center:hover { transform: none; }
+.theme-swatch.center.active { border-color: var(--text); box-shadow: 0 0 0 2px var(--accent); }
 .theme-swatch[data-theme-choice="dark-orange"] {
   background: linear-gradient(135deg, #000000 50%, #ff7a00 50%);
 }
@@ -226,5 +307,13 @@ footer.page-footer { margin-top: 32px; font-size: 0.78rem; color: var(--muted); 
 }
 .theme-swatch[data-theme-choice="light-pink"] {
   background: linear-gradient(135deg, #ffffff 34%, #3b82f6 34% 67%, #ec4899 67%);
+  border-color: #d0d0d0;
+}
+.theme-swatch[data-theme-choice="light-green"] {
+  background: linear-gradient(135deg, #ffffff 50%, #00e676 50%);
+  border-color: #d0d0d0;
+}
+.theme-swatch[data-theme-choice="light-red"] {
+  background: linear-gradient(135deg, #ffffff 50%, #ff1744 50%);
   border-color: #d0d0d0;
 }

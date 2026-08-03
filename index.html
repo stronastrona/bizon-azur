@@ -10,9 +10,13 @@
 <body>
   <div class="wrap-narrow">
     <div class="theme-switcher">
-      <button type="button" class="theme-swatch" data-theme-choice="dark-orange" title="Czarno-pomarańczowy" onclick="setBizonTheme('dark-orange')"></button>
-      <button type="button" class="theme-swatch" data-theme-choice="light-orange" title="Biało-pomarańczowy" onclick="setBizonTheme('light-orange')"></button>
-      <button type="button" class="theme-swatch" data-theme-choice="light-pink" title="Biało-niebiesko-różowy" onclick="setBizonTheme('light-pink')"></button>
+      <button type="button" class="theme-arrow" id="theme-prev" aria-label="Poprzedni motyw">‹</button>
+      <div class="theme-track">
+        <button type="button" class="theme-swatch" id="theme-slot-prev" data-slot="prev"></button>
+        <button type="button" class="theme-swatch center" id="theme-slot-current" data-slot="current"></button>
+        <button type="button" class="theme-swatch" id="theme-slot-next" data-slot="next"></button>
+      </div>
+      <button type="button" class="theme-arrow" id="theme-next" aria-label="Następny motyw">›</button>
     </div>
 
     <div class="logo" style="justify-content:center; margin-bottom: 24px; flex-direction:column; align-items:center; gap:4px;">
@@ -43,6 +47,47 @@
 
   <script type="module">
     import { supabase } from './js/supabaseClient.js';
+
+    // --- Karuzela wyboru motywu ---
+    const THEME_LABELS = {
+      'dark-orange': 'Czarno-pomarańczowy',
+      'light-orange': 'Biało-pomarańczowy',
+      'light-pink': 'Biało-niebiesko-różowy',
+      'light-green': 'Biało-zielony',
+      'light-red': 'Biało-czerwony',
+    };
+    const themes = window.BIZON_THEMES;
+    let themeIndex = themes.indexOf(window.getBizonTheme());
+    if (themeIndex === -1) themeIndex = 0;
+
+    const slotPrev = document.getElementById('theme-slot-prev');
+    const slotCurrent = document.getElementById('theme-slot-current');
+    const slotNext = document.getElementById('theme-slot-next');
+
+    function renderThemeCarousel() {
+      const prevIdx = (themeIndex - 1 + themes.length) % themes.length;
+      const nextIdx = (themeIndex + 1) % themes.length;
+      slotPrev.setAttribute('data-theme-choice', themes[prevIdx]);
+      slotPrev.title = THEME_LABELS[themes[prevIdx]];
+      slotCurrent.setAttribute('data-theme-choice', themes[themeIndex]);
+      slotCurrent.title = THEME_LABELS[themes[themeIndex]];
+      slotCurrent.classList.add('active');
+      slotNext.setAttribute('data-theme-choice', themes[nextIdx]);
+      slotNext.title = THEME_LABELS[themes[nextIdx]];
+    }
+
+    function goToTheme(index) {
+      themeIndex = (index + themes.length) % themes.length;
+      window.setBizonTheme(themes[themeIndex]);
+      renderThemeCarousel();
+    }
+
+    document.getElementById('theme-prev').addEventListener('click', () => goToTheme(themeIndex - 1));
+    document.getElementById('theme-next').addEventListener('click', () => goToTheme(themeIndex + 1));
+    slotPrev.addEventListener('click', () => goToTheme(themeIndex - 1));
+    slotNext.addEventListener('click', () => goToTheme(themeIndex + 1));
+
+    renderThemeCarousel();
 
     const form = document.getElementById('login-form');
     const errorEl = document.getElementById('login-error');

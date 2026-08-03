@@ -3,7 +3,7 @@
 // mrugniecia zlym kolorem). Wybor trzyma sie w localStorage, wiec dziala
 // tak samo na kazdej podstronie.
 (function () {
-  var THEMES = ['dark-orange', 'light-orange', 'light-pink'];
+  var THEMES = ['dark-orange', 'light-orange', 'light-pink', 'light-green', 'light-red'];
   var STORAGE_KEY = 'bizon-theme';
 
   function currentTheme() {
@@ -13,19 +13,13 @@
 
   document.documentElement.setAttribute('data-theme', currentTheme());
 
-  function markActiveSwatch() {
-    var active = currentTheme();
-    document.querySelectorAll('.theme-swatch').forEach(function (el) {
-      el.classList.toggle('active', el.getAttribute('data-theme-choice') === active);
-    });
-  }
+  window.BIZON_THEMES = THEMES;
+  window.getBizonTheme = currentTheme;
 
   window.setBizonTheme = function (theme) {
     if (THEMES.indexOf(theme) === -1) return;
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem(STORAGE_KEY, theme);
-    markActiveSwatch();
+    document.dispatchEvent(new CustomEvent('bizon-theme-changed', { detail: { theme: theme } }));
   };
-
-  document.addEventListener('DOMContentLoaded', markActiveSwatch);
 })();
