@@ -42,6 +42,11 @@
         </div>
       </div>
 
+      <section>
+        <h2>Podział Twojego kapitału na instrumenty</h2>
+        <div class="grid-stats" id="allocation-grid"></div>
+      </section>
+
       <section class="card">
         <h2>Historia Twoich wpłat</h2>
         <table id="contrib-table">
@@ -49,6 +54,7 @@
           <tbody></tbody>
         </table>
         <p id="no-contrib" class="hint" hidden>Brak zarejestrowanych wpłat.</p>
+        <button type="button" class="secondary" id="contrib-toggle" hidden style="margin-top:12px;">Rozwiń pełną historię</button>
       </section>
 
       <section class="card">
@@ -140,17 +146,44 @@
       document.getElementById('stat-return-pct').textContent = (summary.return_pct >= 0 ? '+' : '') + summary.return_pct.toFixed(1) + '% od początku';
 
       const tbody = document.querySelector('#contrib-table tbody');
-      if (!contributions || contributions.length === 0) {
-        document.getElementById('no-contrib').hidden = false;
-      } else {
-        contributions.forEach((c) => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${new Date(c.contributed_at).toLocaleDateString('pl-PL')}</td><td>${money(c.amount)}</td>`;
-          tbody.appendChild(tr);
-        });
-      }
 
       drawChart(monthlyGrowthSeries({ contributions: contributions || [], currentValue: summary.current_value }));
+
+      renderAllocations(summary.total_contributed);
+
+      // --- Historia wplat: domyslnie ostatnie 3 miesiace, z opcja rozwiniecia ---
+      const contribToggle = document.getElementById('contrib-toggle');
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      const recentContributions = (contributions || []).filter((c) => new Date(c.contributed_at) >= threeMonthsAgo);
+      const hasOlder = (contributions || []).length > recentContributions.length;
+      let showingAll = false;
+
+      function renderContribTable() {
+        const rows = showingAll ? (contributions || []) : recentContributions;
+        tbody.innerHTML = '';
+        if (rows.length === 0) {
+          document.getElementById('no-contrib').hidden = false;
+        } else {
+          document.getElementById('no-contrib').hidden = true;
+          rows.forEach((c) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${new Date(c.contributed_at).toLocaleDateString('pl-PL')}</td><td>${money(c.amount)}</td>`;
+            tbody.appendChild(tr);
+          });
+        }
+      }
+
+      if (hasOlder) {
+        contribToggle.hidden = false;
+        contribToggle.textContent = 'Rozwiń pełną historię';
+        contribToggle.addEventListener('click', () => {
+          showingAll = !showingAll;
+          contribToggle.textContent = showingAll ? 'Pokaż tylko ostatnie 3 miesiące' : 'Rozwiń pełną historię';
+          renderContribTable();
+        });
+      }
+      renderContribTable();
 
       // --- Kalkulator ---
       const currentMonthlyInput = document.getElementById('calc-current-monthly');
@@ -185,6 +218,30 @@
       [currentMonthlyInput, increasedMonthlyInput, rateInput, yearsInput].forEach((el) => el.addEventListener('input', runCalculator));
       runCalculator();
     })();
+
+    // Zalozony podzial kapitalu na instrumenty (ta sama proporcja dla kazdej
+    // wplaconej zlotowki) i szacowana roczna stopa zwrotu dla kazdej kategorii.
+    // To orientacyjny szacunek, nie realny, osobno sledzony wynik per instrument.
+    const ALLOCATIONS = [
+      { label: 'Lokaty', fraction: 125 / 500, ratePct: 5.5 },
+      { label: 'Obligacje', fraction: 125 / 500, ratePct: 5.0 },
+      { label: 'ETF-y', fraction: 125 / 500, ratePct: 11.8 },
+      { label: 'Kryptowaluty', fraction: 125 / 500, ratePct: 17 },
+    ];
+
+    function renderAllocations(totalContributed) {
+      const grid = document.getElementById('allocation-grid');
+      grid.innerHTML = ALLOCATIONS.map((a) => {
+        const invested = (totalContributed || 0) * a.fraction;
+        const estProfit = invested * (a.ratePct / 100);
+        return `
+          <div class="card stat">
+            <div class="label">${a.label}</div>
+            <div class="value">${money(invested)}</div>
+            <div class="sub-value">Szacowany zysk: ${money(estProfit)} / rok (${a.ratePct}%)</div>
+          </div>`;
+      }).join('');
+    }
 
     function estimateMonthlyContribution(contributions) {
       if (!contributions || contributions.length === 0) return 0;
