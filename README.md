@@ -1,4 +1,4 @@
-# Bizon Azur Inwestycje Długoterminowe
+# BizON AB Azure Capital Group
 
 Prosta strona informacyjna dla spółki inwestycyjnej. Każdy z 9 wspólników po zalogowaniu widzi ile wpłacił, ile zarobił i ile może teraz wypłacić, oraz kalkulator prognozujący przyszły zysk. Bez wpłat/wypłat online — wyłącznie podgląd.
 
