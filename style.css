@@ -317,3 +317,19 @@ footer.page-footer { margin-top: 32px; font-size: 0.78rem; color: var(--muted); 
   background: linear-gradient(135deg, #ffffff 50%, #ff1744 50%);
   border-color: #d0d0d0;
 }
+
+/* --- Maskotka na stronie logowania --- */
+.bison-decor {
+  position: fixed;
+  right: 4vw;
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(30vw, 420px);
+  height: auto;
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 0;
+}
+@media (max-width: 1100px) {
+  .bison-decor { display: none; }
+}
