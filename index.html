@@ -91,16 +91,31 @@
 
     renderThemeCarousel();
 
-    // Wyrownaj gorna krawedz maskotek do gornej krawedzi karty logowania.
+    // Wyrownaj dolna krawedz maskotek do dolnej krawedzi karty logowania,
+    // i pokazuj kazda tylko jesli realnie miesci sie obok karty (liczone
+    // z faktycznej szerokosci okna, a nie ze sztywnego breakpointu -
+    // dziala poprawnie tez przy skalowaniu/zoomie przegladarki).
     function alignBisonsToCard() {
-      const card = document.querySelector('.card');
-      const top = card.getBoundingClientRect().top;
+      const card = document.querySelector('.card').getBoundingClientRect();
+      const gap = 24;
       document.querySelectorAll('.bison-decor').forEach((el) => {
-        el.style.top = top + 'px';
+        // Uwaga: przy display:none getBoundingClientRect() zwraca 0,
+        // wiec szerokosc liczymy z computed style (dziala niezaleznie
+        // od tego czy element jest aktualnie renderowany).
+        const w = parseFloat(getComputedStyle(el).width) || 0;
+        const fitsRight = el.classList.contains('bison-decor-right') && (window.innerWidth - card.right - w) > gap;
+        const fitsLeft = el.classList.contains('bison-decor-left') && (card.left - w) > gap;
+        if (fitsRight || fitsLeft) {
+          el.style.display = 'block';
+          el.style.bottom = (window.innerHeight - card.bottom) + 'px';
+        } else {
+          el.style.display = 'none';
+        }
       });
     }
-    alignBisonsToCard();
+    window.addEventListener('load', alignBisonsToCard);
     window.addEventListener('resize', alignBisonsToCard);
+    alignBisonsToCard();
 
     const form = document.getElementById('login-form');
     const errorEl = document.getElementById('login-error');
