@@ -91,6 +91,17 @@
 
     renderThemeCarousel();
 
+    // Wyrownaj gorna krawedz maskotek do gornej krawedzi karty logowania.
+    function alignBisonsToCard() {
+      const card = document.querySelector('.card');
+      const top = card.getBoundingClientRect().top;
+      document.querySelectorAll('.bison-decor').forEach((el) => {
+        el.style.top = top + 'px';
+      });
+    }
+    alignBisonsToCard();
+    window.addEventListener('resize', alignBisonsToCard);
+
     const form = document.getElementById('login-form');
     const errorEl = document.getElementById('login-error');
     const submitBtn = document.getElementById('login-submit');
