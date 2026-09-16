@@ -321,14 +321,25 @@ footer.page-footer { margin-top: 32px; font-size: 0.78rem; color: var(--muted); 
 /* --- Maskotka na stronie logowania --- */
 .bison-decor {
   position: fixed;
-  right: 4vw;
   top: 50%;
-  transform: translateY(-50%);
   width: min(30vw, 420px);
   height: auto;
   opacity: 0.9;
   pointer-events: none;
   z-index: 0;
+}
+.bison-decor-right {
+  right: 4vw;
+  transform: translateY(-50%);
+}
+.bison-decor-left {
+  left: 4vw;
+  /* Oryginal patrzy w lewo; odbicie w poziomie zwraca glowe w strone
+     karty logowania (do srodka), tak jak kopia po prawej. */
+  transform: translateY(-50%) scaleX(-1);
+}
+@media (max-width: 1400px) {
+  .bison-decor-left { display: none; }
 }
 @media (max-width: 1100px) {
   .bison-decor { display: none; }
