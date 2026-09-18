@@ -85,8 +85,6 @@
     border-radius: 20px; padding: clamp(18px, 4vw, 30px);
     -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255,255,255,0.04); }
-  .calc h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 700; letter-spacing: 0.02em; }
-  .calc .lead { margin: 0 0 20px; font-size: 0.85rem; color: var(--muted); }
 
   .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 640px) { .fields { grid-template-columns: 1fr; } }
@@ -130,6 +128,7 @@
   .disclaimer strong { color: #a6b0cc; }
   .disclaimer ul { margin: 6px 0 0; padding-left: 18px; }
   .disclaimer li { margin-bottom: 4px; }
+  .disclaimer:empty { display: none; }
 
   /* link powrotu do panelu BizON (kopia w projekcie) */
   .back { position: fixed; top: 14px; left: 16px; z-index: 5; font-size: 0.78rem; color: var(--muted); text-decoration: none; padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.35); }
@@ -150,10 +149,7 @@
     </header>
 
     <main>
-      <section class="calc" aria-labelledby="calc-title">
-        <h2 id="calc-title">Symulacja zysku (12 miesięcy)</h2>
-        <p class="lead">Wpisz kwotę wpłaty. Stopa zysku dobiera się automatycznie według progu kwoty, a wyliczenia aktualizują się na bieżąco.</p>
-
+      <section class="calc" aria-label="Kalkulator">
         <div class="fields">
           <div class="field">
             <label for="amount">Kwota wpłaty (PLN)</label>
@@ -172,14 +168,9 @@
         </div>
       </section>
 
-      <div class="disclaimer" role="note">
-        <strong>Ważne zastrzeżenia:</strong>
-        <ul>
-          <li>Kalkulator pokazuje <strong>symulację przy założonych stopach zysku przypisanych do progów kwoty wpłaty</strong>. To założenia obliczeniowe, a nie rzeczywiste wyniki inwestycji ani oferta.</li>
-          <li>Założone stopy <strong>nie są gwarancją ani prognozą zysków</strong>; rzeczywisty wynik może być niższy, a zainwestowany kapitał może się zmniejszyć.</li>
-          <li>Narzędzie ma charakter <strong>testowy i poglądowy</strong>; nie stanowi rekomendacji inwestycyjnej ani porady finansowej.</li>
-        </ul>
-      </div>
+      <!-- NOTKA PRAWNA: wklej tutaj tekst od prawnika (zwykly HTML, np. <p>...</p>).
+           Dopoki kontener jest pusty, nie jest wyswietlany. -->
+      <div class="disclaimer" id="legal-note" role="note"></div>
     </main>
   </div>
 
