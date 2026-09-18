@@ -83,6 +83,18 @@
       </section>
 
       <section class="card">
+        <h2>Zlecenia zakupu krypto</h2>
+        <p class="hint" style="margin-top:-6px;">Kursy poglądowe z chwili zlecenia. Kupujesz ręcznie po aktualnym kursie, potem oznacz zlecenie jako zrealizowane.</p>
+        <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>Data</th><th>Wspólnik</th><th>Waluta</th><th>Kwota</th><th>Ilość (szac.)</th><th>Sieć</th><th>Adres portfela</th><th>Status</th><th></th></tr></thead>
+          <tbody id="orders-tbody"></tbody>
+        </table>
+        </div>
+        <p id="no-orders" class="hint" hidden>Brak zleceń.</p>
+      </section>
+
+      <section class="card">
         <h2>Historia wycen portfela</h2>
         <table>
           <thead><tr><th>Data</th><th>Wartość portfela</th></tr></thead>
@@ -98,14 +110,17 @@
 
     const money = (n) => (n ?? 0).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 });
 
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
     let partners = [];
 
     async function loadAll() {
-      const [{ data: profiles }, { data: summaryRows }, { data: contributions }, { data: valuations }] = await Promise.all([
+      const [{ data: profiles }, { data: summaryRows }, { data: contributions }, { data: valuations }, { data: orders }] = await Promise.all([
         supabase.from('profiles').select('id, full_name').order('full_name'),
         supabase.rpc('partner_summary'),
         supabase.from('contributions').select('id, amount, contributed_at, partner_id').order('contributed_at', { ascending: false }).limit(50),
         supabase.from('portfolio_valuations').select('id, valuation_date, total_value').order('valuation_date', { ascending: false }).limit(50),
+        supabase.from('crypto_orders').select('id, created_at, partner_id, coin, network, amount_pln, rate_pln, amount_coin, wallet_address, status').order('created_at', { ascending: false }).limit(100),
       ]);
 
       partners = profiles || [];
@@ -129,6 +144,24 @@
         <tr><td>${new Date(c.contributed_at).toLocaleDateString('pl-PL')}</td><td>${nameById[c.partner_id] || '—'}</td><td>${money(c.amount)}</td></tr>
       `).join('');
 
+      const ordersBody = document.getElementById('orders-tbody');
+      document.getElementById('no-orders').hidden = !!(orders && orders.length);
+      ordersBody.innerHTML = (orders || []).map((o) => `
+        <tr>
+          <td>${new Date(o.created_at).toLocaleString('pl-PL')}</td>
+          <td>${esc(nameById[o.partner_id] || '—')}</td>
+          <td>${esc(o.coin)}</td>
+          <td>${money(o.amount_pln)}</td>
+          <td>${Number(o.amount_coin).toLocaleString('pl-PL', { maximumFractionDigits: 8 })}</td>
+          <td>${esc(o.network || '—')}</td>
+          <td style="word-break:break-all; max-width:260px;">${esc(o.wallet_address)}</td>
+          <td>${esc(o.status)}</td>
+          <td style="white-space:nowrap;">${o.status === 'nowe'
+            ? `<button type="button" data-order="${esc(o.id)}" data-status="zrealizowane" style="padding:5px 10px;">Zrealizowane</button>
+               <button type="button" class="secondary" data-order="${esc(o.id)}" data-status="anulowane" style="padding:5px 10px;">Anuluj</button>`
+            : ''}</td>
+        </tr>`).join('');
+
       const valuationBody = document.getElementById('valuation-tbody');
       valuationBody.innerHTML = (valuations || []).map((v) => `
         <tr><td>${new Date(v.valuation_date).toLocaleDateString('pl-PL')}</td><td>${money(v.total_value)}</td></tr>
@@ -142,6 +175,15 @@
 
       document.getElementById('c-date').valueAsDate = new Date();
       document.getElementById('v-date').valueAsDate = new Date();
+
+      document.getElementById('orders-tbody').addEventListener('click', async (e) => {
+        const btn = e.target.closest('button[data-order]');
+        if (!btn) return;
+        btn.disabled = true;
+        const { error } = await supabase.from('crypto_orders').update({ status: btn.dataset.status }).eq('id', btn.dataset.order);
+        if (error) { alert('Błąd zmiany statusu: ' + error.message); btn.disabled = false; return; }
+        await loadAll();
+      });
 
       await loadAll();
       document.getElementById('loading').hidden = true;

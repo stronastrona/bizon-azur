@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kantor krypto — BizON AB Azure Capital Group</title>
+<link rel="stylesheet" href="style.css">
+<script src="js/theme.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div class="logo">
+        <span class="mark">Biz<span>ON</span></span>
+        <span class="tag">Kantor krypto</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button class="secondary" id="logout-btn">Wyloguj</button>
+      </div>
+    </header>
+
+    <h1>Kantor krypto</h1>
+    <p class="sub">Podgląd kursów i złożenie zlecenia zakupu. Przez tę stronę nic nie kupujesz — zlecenie trafia do pracownika spółki, który realizuje je ręcznie.</p>
+
+    <div id="loading" class="card">Wczytywanie...</div>
+
+    <div id="content" hidden>
+      <section class="card">
+        <h2>Kursy (w zł)</h2>
+        <div class="grid-stats" id="rates-grid" style="margin-bottom:0;"></div>
+        <p id="rates-status" class="hint"></p>
+      </section>
+
+      <section class="card">
+        <h2>Nowe zlecenie zakupu</h2>
+        <form id="order-form" autocomplete="off">
+          <div class="form-row">
+            <div class="field">
+              <label for="o-coin">Kryptowaluta</label>
+              <select id="o-coin"></select>
+            </div>
+            <div class="field">
+              <label for="o-network">Sieć</label>
+              <select id="o-network"></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="o-pln">Kwota (zł)</label>
+              <input id="o-pln" type="number" min="1" step="any" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label for="o-amount">Otrzymasz (szac.)</label>
+              <input id="o-amount" type="number" min="0" step="any" inputmode="decimal">
+            </div>
+          </div>
+          <p id="o-rate-line" class="hint" style="margin-top:-6px;"></p>
+          <div class="field">
+            <label for="o-address">Adres Twojego portfela</label>
+            <input id="o-address" type="text" spellcheck="false" placeholder="Wklej swój adres portfela">
+            <p class="hint">Sprawdź dokładnie adres i sieć — przelewów krypto nie da się cofnąć. Adres zapisuje się osobno dla każdej waluty.</p>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <button type="submit" id="o-submit">Wyślij zlecenie</button>
+            <button type="button" class="secondary" id="o-save-wallet">Zapisz sam adres</button>
+          </div>
+          <p id="o-msg" class="hint"></p>
+        </form>
+        <p class="hint">Kurs jest poglądowy (CoinGecko). Pracownik kupi po aktualnym kursie z chwili realizacji, więc ostateczna ilość może się nieco różnić.</p>
+      </section>
+
+      <section class="card">
+        <h2>Twoje zlecenia</h2>
+        <table>
+          <thead><tr><th>Data</th><th>Waluta</th><th>Kwota</th><th>Ilość (szac.)</th><th>Status</th></tr></thead>
+          <tbody id="orders-tbody"></tbody>
+        </table>
+        <p id="no-orders" class="hint" hidden>Brak zleceń.</p>
+      </section>
+    </div>
+
+    <footer class="page-footer">Zlecenia realizowane ręcznie przez pracownika spółki. Kursy poglądowe, bez gwarancji.</footer>
+  </div>
+
+  <script type="module">
+    import { supabase } from './js/supabaseClient.js';
+    import { requireSession, wireLogout } from './js/auth.js';
+
+    const COINS = [
+      { symbol: 'BTC',  name: 'Bitcoin',      id: 'bitcoin',      networks: ['Bitcoin'] },
+      { symbol: 'ETH',  name: 'Ethereum',     id: 'ethereum',     networks: ['Ethereum (ERC20)'] },
+      { symbol: 'USDT', name: 'Tether',       id: 'tether',       networks: ['Tron (TRC20)', 'Ethereum (ERC20)', 'BNB Smart Chain (BEP20)'] },
+      { symbol: 'BNB',  name: 'BNB',          id: 'binancecoin',  networks: ['BNB Smart Chain (BEP20)'] },
+      { symbol: 'XRP',  name: 'XRP',          id: 'ripple',       networks: ['XRP Ledger'] },
+      { symbol: 'SOL',  name: 'Solana',       id: 'solana',       networks: ['Solana'] },
+      { symbol: 'USDC', name: 'USD Coin',     id: 'usd-coin',     networks: ['Ethereum (ERC20)', 'Solana', 'BNB Smart Chain (BEP20)'] },
+      { symbol: 'DOGE', name: 'Dogecoin',     id: 'dogecoin',     networks: ['Dogecoin'] },
+      { symbol: 'TRX',  name: 'TRON',         id: 'tron',         networks: ['Tron (TRC20)'] },
+      { symbol: 'ADA',  name: 'Cardano',      id: 'cardano',      networks: ['Cardano'] },
+    ];
+
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const pln = (n, d = 2) => Number(n).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', minimumFractionDigits: d, maximumFractionDigits: d });
+    const coinFmt = (n, rate) => {
+      const decimals = rate >= 10000 ? 8 : rate >= 100 ? 6 : rate >= 1 ? 4 : 2;
+      return Number(n).toLocaleString('pl-PL', { maximumFractionDigits: decimals });
+    };
+
+    const els = {
+      coin: document.getElementById('o-coin'),
+      network: document.getElementById('o-network'),
+      pln: document.getElementById('o-pln'),
+      amount: document.getElementById('o-amount'),
+      address: document.getElementById('o-address'),
+      rateLine: document.getElementById('o-rate-line'),
+      msg: document.getElementById('o-msg'),
+      submit: document.getElementById('o-submit'),
+    };
+
+    let rates = {};          // symbol -> { pln, change }
+    let wallets = {};        // symbol -> { address, network }
+    let session = null;
+    const coinBy = (sym) => COINS.find((c) => c.symbol === sym);
+    const currentRate = () => rates[els.coin.value]?.pln;
+
+    async function loadRates() {
+      const status = document.getElementById('rates-status');
+      try {
+        const ids = COINS.map((c) => c.id).join(',');
+        const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=pln&include_24hr_change=true`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        COINS.forEach((c) => {
+          if (data[c.id]?.pln) rates[c.symbol] = { pln: data[c.id].pln, change: data[c.id].pln_24h_change };
+        });
+        status.textContent = 'Zaktualizowano ' + new Date().toLocaleTimeString('pl-PL') + ' (odświeżanie co minutę).';
+      } catch (e) {
+        console.error(e);
+        status.textContent = Object.keys(rates).length
+          ? 'Nie udało się odświeżyć kursów — pokazuję ostatnie pobrane.'
+          : 'Nie udało się pobrać kursów. Spróbuj za chwilę.';
+      }
+      renderRates();
+      updateFromPln();
+    }
+
+    function renderRates() {
+      document.getElementById('rates-grid').innerHTML = COINS.map((c) => {
+        const r = rates[c.symbol];
+        const ch = r?.change;
+        const chText = typeof ch === 'number' ? `${ch >= 0 ? '+' : ''}${ch.toFixed(2)}% / 24h` : '—';
+        return `<div class="card stat"><div class="label">${esc(c.symbol)} · ${esc(c.name)}</div>
+          <div class="value" style="font-size:1.2rem;">${r ? pln(r.pln, r.pln >= 100 ? 2 : 4) : '—'}</div>
+          <div class="sub-value" style="color:${typeof ch === 'number' && ch < 0 ? 'var(--danger)' : 'var(--accent-bright)'}">${chText}</div></div>`;
+      }).join('');
+    }
+
+    function renderCoinOptions() {
+      els.coin.innerHTML = COINS.map((c) => `<option value="${c.symbol}">${esc(c.symbol)} — ${esc(c.name)}</option>`).join('');
+    }
+
+    function onCoinChange() {
+      const c = coinBy(els.coin.value);
+      const saved = wallets[c.symbol];
+      els.network.innerHTML = c.networks.map((n) => `<option>${esc(n)}</option>`).join('');
+      if (saved?.network && c.networks.includes(saved.network)) els.network.value = saved.network;
+      els.address.value = saved?.address || '';
+      updateFromPln();
+    }
+
+    function updateFromPln() {
+      const rate = currentRate();
+      els.rateLine.textContent = rate ? `Kurs poglądowy: 1 ${els.coin.value} = ${pln(rate, rate >= 100 ? 2 : 4)}` : '';
+      const v = parseFloat(els.pln.value);
+      els.amount.value = rate && v > 0 ? Number((v / rate).toPrecision(8)) : '';
+    }
+    function updateFromAmount() {
+      const rate = currentRate();
+      const v = parseFloat(els.amount.value);
+      els.pln.value = rate && v > 0 ? Number((v * rate).toFixed(2)) : '';
+    }
+
+    const validAddress = (a) => a.length >= 14 && a.length <= 128 && !/\s/.test(a);
+
+    async function saveWallet() {
+      const address = els.address.value.trim();
+      if (!validAddress(address)) throw new Error('Adres wygląda nieprawidłowo (14–128 znaków, bez spacji).');
+      const row = { partner_id: session.user.id, coin: els.coin.value, network: els.network.value, address, updated_at: new Date().toISOString() };
+      const { error } = await supabase.from('partner_wallets').upsert(row, { onConflict: 'partner_id,coin' });
+      if (error) throw error;
+      wallets[row.coin] = { address, network: row.network };
+    }
+
+    async function loadOrders() {
+      const { data, error } = await supabase.from('crypto_orders')
+        .select('created_at, coin, amount_pln, amount_coin, rate_pln, status')
+        .eq('partner_id', session.user.id).order('created_at', { ascending: false }).limit(20);
+      if (error) console.error(error);
+      const body = document.getElementById('orders-tbody');
+      document.getElementById('no-orders').hidden = !!(data && data.length);
+      body.innerHTML = (data || []).map((o) => `<tr>
+        <td>${new Date(o.created_at).toLocaleString('pl-PL')}</td><td>${esc(o.coin)}</td>
+        <td>${pln(o.amount_pln)}</td><td>${coinFmt(o.amount_coin, Number(o.rate_pln))}</td><td>${esc(o.status)}</td></tr>`).join('');
+    }
+
+    document.getElementById('o-save-wallet').addEventListener('click', async () => {
+      els.msg.textContent = 'Zapisywanie adresu...';
+      try { await saveWallet(); els.msg.textContent = 'Adres zapisany dla ' + els.coin.value + '.'; }
+      catch (e) { els.msg.textContent = 'Błąd: ' + (e.message || e); }
+    });
+
+    document.getElementById('order-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const rate = currentRate();
+      const amountPln = parseFloat(els.pln.value);
+      if (!rate) { els.msg.textContent = 'Brak kursu — poczekaj aż się załaduje.'; return; }
+      if (!(amountPln > 0)) { els.msg.textContent = 'Podaj kwotę większą od zera.'; return; }
+      const address = els.address.value.trim();
+      if (!validAddress(address)) { els.msg.textContent = 'Adres wygląda nieprawidłowo (14–128 znaków, bez spacji).'; return; }
+
+      els.submit.disabled = true;
+      els.msg.textContent = 'Wysyłanie zlecenia...';
+      try {
+        await saveWallet();
+        const { error } = await supabase.from('crypto_orders').insert({
+          partner_id: session.user.id,
+          coin: els.coin.value,
+          network: els.network.value,
+          amount_pln: amountPln,
+          rate_pln: rate,
+          amount_coin: amountPln / rate,
+          wallet_address: address,
+        });
+        if (error) throw error;
+        els.msg.textContent = 'Zlecenie wysłane. Pracownik zrealizuje je ręcznie.';
+        els.pln.value = ''; els.amount.value = '';
+        await loadOrders();
+      } catch (err) {
+        els.msg.textContent = 'Błąd: ' + (err.message || err);
+      } finally {
+        els.submit.disabled = false;
+      }
+    });
+
+    els.coin.addEventListener('change', onCoinChange);
+    els.pln.addEventListener('input', updateFromPln);
+    els.amount.addEventListener('input', updateFromAmount);
+
+    (async () => {
+      const ctx = await requireSession();
+      if (!ctx) return;
+      session = ctx.session;
+      wireLogout('logout-btn');
+
+      renderCoinOptions();
+      const { data: w } = await supabase.from('partner_wallets').select('coin, network, address').eq('partner_id', session.user.id);
+      (w || []).forEach((r) => { wallets[r.coin] = { address: r.address, network: r.network }; });
+
+      document.getElementById('loading').hidden = true;
+      document.getElementById('content').hidden = false;
+      onCoinChange();
+      await Promise.all([loadRates(), loadOrders()]);
+      setInterval(loadRates, 60000);
+    })();
+  </script>
+  <script type="module" src="js/nav.js"></script>
+</body>
+</html>

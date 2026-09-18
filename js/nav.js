@@ -5,6 +5,7 @@
 
 const TABS = [
   { href: 'dashboard.html', label: 'Panel wspólnika' },
+  { href: 'kantor.html', label: 'Kantor krypto' },
 ];
 
 const FLAME_TARGET = null; // np. { href: 'inna-strona.html', label: 'Nazwa strony' }
