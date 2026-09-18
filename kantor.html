@@ -6,6 +6,64 @@
 <title>Kantor krypto — BizON AB Azure Capital Group</title>
 <link rel="stylesheet" href="style.css">
 <script src="js/theme.js"></script>
+<style>
+  .fx-layout { display: grid; grid-template-columns: minmax(0, 520px) minmax(0, 1fr); gap: 22px; align-items: start; margin-bottom: 28px; }
+  @media (max-width: 900px) { .fx-layout { grid-template-columns: minmax(0, 1fr); } }
+
+  .fx-window { padding: 0; overflow: visible; }
+  .fx-titlebar { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+  .fx-titlebar h2 { margin: 0; }
+  .fx-live { font-size: 0.72rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .fx-live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.8); }
+  .fx-body { padding: 18px 20px 20px; }
+
+  .fx-box { position: relative; background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px 14px; }
+  .fx-box:focus-within { border-color: var(--accent); }
+  .fx-box-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .fx-row { display: flex; align-items: center; gap: 10px; }
+  input.fx-input { flex: 1; min-width: 0; background: transparent; border: none; padding: 4px 0; font-size: 1.7rem; font-weight: 700; font-family: var(--mono); color: var(--text); -moz-appearance: textfield; }
+  input.fx-input:focus { outline: none; }
+  input.fx-input::-webkit-outer-spin-button, input.fx-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .fx-pill { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-weight: 700; font-size: 0.9rem; }
+  button.fx-pill { cursor: pointer; box-shadow: none; }
+  button.fx-pill:hover { border-color: var(--accent); filter: none; }
+  .fx-chevron { width: 12px; height: 12px; transition: transform 0.15s ease; }
+  button.fx-pill[aria-expanded="true"] .fx-chevron { transform: rotate(180deg); }
+  .fx-ico { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.55rem; font-weight: 800; color: #fff; flex-shrink: 0; }
+  .fx-chips { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .fx-chip { padding: 4px 10px; font-size: 0.75rem; background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 999px; box-shadow: none; }
+  .fx-chip:hover { border-color: var(--accent); color: var(--text); filter: none; }
+
+  .fx-swap { display: flex; justify-content: center; margin: -10px 0; position: relative; z-index: 1; }
+  .fx-swap span { width: 34px; height: 34px; border-radius: 50%; background: var(--card); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--accent); }
+  .fx-swap svg { width: 16px; height: 16px; }
+
+  .fx-rate { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin: 14px 2px 4px; font-family: var(--mono); }
+  .fx-details { margin-top: 12px; }
+  .fx-submit { width: 100%; padding: 14px 20px; font-size: 1rem; margin-top: 6px; }
+
+  .fx-menu { position: absolute; right: 0; top: calc(100% + 6px); width: min(360px, 100%); z-index: 20; background: var(--card); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 12px 40px rgba(0,0,0,0.35); overflow: hidden; }
+  .fx-menu[hidden] { display: none; }
+  .fx-menu-search { padding: 10px; border-bottom: 1px solid var(--border); }
+  .fx-menu-search input { font-family: inherit; }
+  .fx-list { max-height: 300px; overflow-y: auto; margin: 0; padding: 6px; list-style: none; }
+  .fx-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px; cursor: pointer; }
+  .fx-item:hover, .fx-item.active { background: var(--card-hover); }
+  .fx-item[aria-selected="true"] { outline: 1px solid var(--accent); }
+  .fx-item .nm { flex: 1; min-width: 0; }
+  .fx-item .nm b { display: block; font-size: 0.9rem; }
+  .fx-item .nm small { color: var(--muted); font-size: 0.75rem; }
+  .fx-item .pr { text-align: right; font-family: var(--mono); font-size: 0.8rem; }
+  .fx-item .pr small { display: block; font-size: 0.7rem; }
+  .fx-empty { padding: 14px; color: var(--muted); font-size: 0.85rem; text-align: center; }
+
+  .fx-board { padding: 0; overflow: hidden; }
+  .fx-board .fx-titlebar { border-bottom: 1px solid var(--border); }
+  .fx-board tr { cursor: pointer; }
+  .fx-board td, .fx-board th { padding: 9px 12px; }
+  .fx-board td:nth-child(2), .fx-board td:nth-child(3), .fx-board th:nth-child(2), .fx-board th:nth-child(3) { text-align: right; }
+  .fx-up { color: var(--accent-bright); } .fx-down { color: var(--danger); }
+</style>
 </head>
 <body>
   <div class="wrap">
@@ -19,62 +77,82 @@
       </div>
     </header>
 
-    <h1>Kantor krypto</h1>
-    <p class="sub">Podgląd kursów i złożenie zlecenia zakupu. Przez tę stronę nic nie kupujesz — zlecenie trafia do pracownika spółki, który realizuje je ręcznie.</p>
+    <h1 style="margin-bottom:22px;">Kantor krypto</h1>
 
     <div id="loading" class="card">Wczytywanie...</div>
 
     <div id="content" hidden>
-      <section class="card">
-        <h2>Kursy (w zł)</h2>
-        <div class="grid-stats" id="rates-grid" style="margin-bottom:0;"></div>
-        <p id="rates-status" class="hint"></p>
-      </section>
+      <div class="fx-layout">
+        <section class="card fx-window" aria-label="Okno wymiany">
+          <div class="fx-titlebar">
+            <h2>Kup kryptowalutę</h2>
+            <span class="fx-live" id="fx-live">kursy na żywo</span>
+          </div>
+          <form class="fx-body" id="order-form" autocomplete="off">
+            <div class="fx-box">
+              <div class="fx-box-label"><label for="o-pln" style="margin:0;font-size:inherit;">Płacisz</label></div>
+              <div class="fx-row">
+                <input class="fx-input" id="o-pln" type="number" min="1" step="any" inputmode="decimal" placeholder="0">
+                <span class="fx-pill"><span class="fx-ico" style="background:#c8102e;">PL</span>PLN</span>
+              </div>
+              <div class="fx-chips" id="fx-chips"></div>
+            </div>
 
-      <section class="card">
-        <h2>Nowe zlecenie zakupu</h2>
-        <form id="order-form" autocomplete="off">
-          <div class="form-row">
-            <div class="field">
-              <label for="o-coin">Kryptowaluta</label>
-              <select id="o-coin"></select>
+            <div class="fx-swap" aria-hidden="true"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg></span></div>
+
+            <div class="fx-box">
+              <div class="fx-box-label"><label for="o-amount" style="margin:0;font-size:inherit;">Otrzymasz (szacunkowo)</label></div>
+              <div class="fx-row">
+                <input class="fx-input" id="o-amount" type="number" min="0" step="any" inputmode="decimal" placeholder="0">
+                <button type="button" class="fx-pill" id="fx-coin-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="fx-menu">
+                  <span class="fx-ico" id="fx-coin-ico"></span><span id="fx-coin-sym">BTC</span>
+                  <svg class="fx-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+              </div>
+              <div class="fx-menu" id="fx-menu" hidden>
+                <div class="fx-menu-search"><input type="text" id="fx-search" placeholder="Szukaj waluty (np. BTC, Solana)" aria-label="Szukaj waluty"></div>
+                <ul class="fx-list" id="fx-list" role="listbox" aria-label="Kryptowaluty"></ul>
+              </div>
             </div>
-            <div class="field">
-              <label for="o-network">Sieć</label>
-              <select id="o-network"></select>
+
+            <div class="fx-rate"><span id="o-rate-line">—</span><span id="o-rate-change"></span></div>
+
+            <div class="fx-details">
+              <div class="field">
+                <label for="o-network">Sieć</label>
+                <select id="o-network"></select>
+              </div>
+              <div class="field">
+                <label for="o-address">Adres Twojego portfela</label>
+                <input id="o-address" type="text" spellcheck="false" placeholder="Wklej swój adres portfela">
+                <p class="hint">Sprawdź dokładnie adres i sieć — przelewów krypto nie da się cofnąć. Adres zapisuje się osobno dla każdej waluty.</p>
+              </div>
             </div>
-          </div>
-          <div class="form-row">
-            <div class="field">
-              <label for="o-pln">Kwota (zł)</label>
-              <input id="o-pln" type="number" min="1" step="any" inputmode="decimal">
-            </div>
-            <div class="field">
-              <label for="o-amount">Otrzymasz (szac.)</label>
-              <input id="o-amount" type="number" min="0" step="any" inputmode="decimal">
-            </div>
-          </div>
-          <p id="o-rate-line" class="hint" style="margin-top:-6px;"></p>
-          <div class="field">
-            <label for="o-address">Adres Twojego portfela</label>
-            <input id="o-address" type="text" spellcheck="false" placeholder="Wklej swój adres portfela">
-            <p class="hint">Sprawdź dokładnie adres i sieć — przelewów krypto nie da się cofnąć. Adres zapisuje się osobno dla każdej waluty.</p>
-          </div>
-          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-            <button type="submit" id="o-submit">Wyślij zlecenie</button>
-            <button type="button" class="secondary" id="o-save-wallet">Zapisz sam adres</button>
-          </div>
-          <p id="o-msg" class="hint"></p>
-        </form>
-        <p class="hint">Kurs jest poglądowy (CoinGecko). Pracownik kupi po aktualnym kursie z chwili realizacji, więc ostateczna ilość może się nieco różnić.</p>
-      </section>
+
+            <button type="submit" class="fx-submit" id="o-submit">Złóż zlecenie zakupu</button>
+            <div style="text-align:center; margin-top:8px;"><button type="button" class="secondary" id="o-save-wallet" style="padding:6px 12px; font-size:0.75rem;">Zapisz sam adres</button></div>
+            <p id="o-msg" class="hint" style="text-align:center;"></p>
+            <p class="hint" style="text-align:center;">Kurs poglądowy (CoinGecko). Pracownik kupi po aktualnym kursie z chwili realizacji, więc ostateczna ilość może się nieco różnić.</p>
+          </form>
+        </section>
+
+        <section class="card fx-board" aria-label="Tablica kursów">
+          <div class="fx-titlebar"><h2>Tablica kursów</h2><span class="fx-live" id="rates-status"></span></div>
+          <table>
+            <thead><tr><th>Waluta</th><th>Kurs (zł)</th><th>24h</th></tr></thead>
+            <tbody id="board-tbody"></tbody>
+          </table>
+        </section>
+      </div>
 
       <section class="card">
         <h2>Twoje zlecenia</h2>
+        <div style="overflow-x:auto;">
         <table>
           <thead><tr><th>Data</th><th>Waluta</th><th>Kwota</th><th>Ilość (szac.)</th><th>Status</th></tr></thead>
           <tbody id="orders-tbody"></tbody>
         </table>
+        </div>
         <p id="no-orders" class="hint" hidden>Brak zleceń.</p>
       </section>
     </div>
@@ -87,90 +165,97 @@
     import { requireSession, wireLogout } from './js/auth.js';
 
     const COINS = [
-      { symbol: 'BTC',  name: 'Bitcoin',      id: 'bitcoin',      networks: ['Bitcoin'] },
-      { symbol: 'ETH',  name: 'Ethereum',     id: 'ethereum',     networks: ['Ethereum (ERC20)'] },
-      { symbol: 'USDT', name: 'Tether',       id: 'tether',       networks: ['Tron (TRC20)', 'Ethereum (ERC20)', 'BNB Smart Chain (BEP20)'] },
-      { symbol: 'BNB',  name: 'BNB',          id: 'binancecoin',  networks: ['BNB Smart Chain (BEP20)'] },
-      { symbol: 'XRP',  name: 'XRP',          id: 'ripple',       networks: ['XRP Ledger'] },
-      { symbol: 'SOL',  name: 'Solana',       id: 'solana',       networks: ['Solana'] },
-      { symbol: 'USDC', name: 'USD Coin',     id: 'usd-coin',     networks: ['Ethereum (ERC20)', 'Solana', 'BNB Smart Chain (BEP20)'] },
-      { symbol: 'DOGE', name: 'Dogecoin',     id: 'dogecoin',     networks: ['Dogecoin'] },
-      { symbol: 'TRX',  name: 'TRON',         id: 'tron',         networks: ['Tron (TRC20)'] },
-      { symbol: 'ADA',  name: 'Cardano',      id: 'cardano',      networks: ['Cardano'] },
+      { symbol: 'BTC',  name: 'Bitcoin',  id: 'bitcoin',     hue: 33,  networks: ['Bitcoin'] },
+      { symbol: 'ETH',  name: 'Ethereum', id: 'ethereum',    hue: 230, networks: ['Ethereum (ERC20)'] },
+      { symbol: 'USDT', name: 'Tether',   id: 'tether',      hue: 160, networks: ['Tron (TRC20)', 'Ethereum (ERC20)', 'BNB Smart Chain (BEP20)'] },
+      { symbol: 'BNB',  name: 'BNB',      id: 'binancecoin', hue: 45,  networks: ['BNB Smart Chain (BEP20)'] },
+      { symbol: 'XRP',  name: 'XRP',      id: 'ripple',      hue: 210, networks: ['XRP Ledger'] },
+      { symbol: 'SOL',  name: 'Solana',   id: 'solana',      hue: 280, networks: ['Solana'] },
+      { symbol: 'USDC', name: 'USD Coin', id: 'usd-coin',    hue: 215, networks: ['Ethereum (ERC20)', 'Solana', 'BNB Smart Chain (BEP20)'] },
+      { symbol: 'DOGE', name: 'Dogecoin', id: 'dogecoin',    hue: 48,  networks: ['Dogecoin'] },
+      { symbol: 'TRX',  name: 'TRON',     id: 'tron',        hue: 0,   networks: ['Tron (TRC20)'] },
+      { symbol: 'ADA',  name: 'Cardano',  id: 'cardano',     hue: 220, networks: ['Cardano'] },
     ];
+    const QUICK_AMOUNTS = [100, 500, 1000, 5000];
 
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const pln = (n, d = 2) => Number(n).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN', minimumFractionDigits: d, maximumFractionDigits: d });
+    const priceFmt = (r) => pln(r, r >= 100 ? 2 : 4);
     const coinFmt = (n, rate) => {
       const decimals = rate >= 10000 ? 8 : rate >= 100 ? 6 : rate >= 1 ? 4 : 2;
       return Number(n).toLocaleString('pl-PL', { maximumFractionDigits: decimals });
     };
+    const icon = (c) => `<span class="fx-ico" style="background:hsl(${c.hue} 65% 42%);">${esc(c.symbol.slice(0, 3))}</span>`;
+    const changeHtml = (ch) => typeof ch === 'number'
+      ? `<span class="${ch >= 0 ? 'fx-up' : 'fx-down'}">${ch >= 0 ? '+' : ''}${ch.toFixed(2)}%</span>` : '—';
 
-    const els = {
-      coin: document.getElementById('o-coin'),
-      network: document.getElementById('o-network'),
-      pln: document.getElementById('o-pln'),
-      amount: document.getElementById('o-amount'),
-      address: document.getElementById('o-address'),
-      rateLine: document.getElementById('o-rate-line'),
-      msg: document.getElementById('o-msg'),
-      submit: document.getElementById('o-submit'),
-    };
+    const q = (id) => document.getElementById(id);
+    const els = { network: q('o-network'), pln: q('o-pln'), amount: q('o-amount'), address: q('o-address'),
+      rateLine: q('o-rate-line'), rateChange: q('o-rate-change'), msg: q('o-msg'), submit: q('o-submit'),
+      coinBtn: q('fx-coin-btn'), menu: q('fx-menu'), search: q('fx-search'), list: q('fx-list') };
 
-    let rates = {};          // symbol -> { pln, change }
-    let wallets = {};        // symbol -> { address, network }
+    let rates = {};      // symbol -> { pln, change }
+    let wallets = {};    // symbol -> { address, network }
     let session = null;
+    let coinSymbol = 'BTC';
     const coinBy = (sym) => COINS.find((c) => c.symbol === sym);
-    const currentRate = () => rates[els.coin.value]?.pln;
+    const currentRate = () => rates[coinSymbol]?.pln;
 
     async function loadRates() {
-      const status = document.getElementById('rates-status');
+      const status = q('rates-status');
       try {
-        const ids = COINS.map((c) => c.id).join(',');
-        const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=pln&include_24hr_change=true`);
+        const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${COINS.map((c) => c.id).join(',')}&vs_currencies=pln&include_24hr_change=true`);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
-        COINS.forEach((c) => {
-          if (data[c.id]?.pln) rates[c.symbol] = { pln: data[c.id].pln, change: data[c.id].pln_24h_change };
-        });
-        status.textContent = 'Zaktualizowano ' + new Date().toLocaleTimeString('pl-PL') + ' (odświeżanie co minutę).';
+        COINS.forEach((c) => { if (data[c.id]?.pln) rates[c.symbol] = { pln: data[c.id].pln, change: data[c.id].pln_24h_change }; });
+        status.textContent = 'aktualizacja ' + new Date().toLocaleTimeString('pl-PL');
       } catch (e) {
         console.error(e);
-        status.textContent = Object.keys(rates).length
-          ? 'Nie udało się odświeżyć kursów — pokazuję ostatnie pobrane.'
-          : 'Nie udało się pobrać kursów. Spróbuj za chwilę.';
+        status.textContent = Object.keys(rates).length ? 'nie udało się odświeżyć' : 'brak kursów';
       }
-      renderRates();
-      updateFromPln();
+      renderBoard(); renderList(); updateFromPln();
     }
 
-    function renderRates() {
-      document.getElementById('rates-grid').innerHTML = COINS.map((c) => {
+    function renderBoard() {
+      q('board-tbody').innerHTML = COINS.map((c) => {
         const r = rates[c.symbol];
-        const ch = r?.change;
-        const chText = typeof ch === 'number' ? `${ch >= 0 ? '+' : ''}${ch.toFixed(2)}% / 24h` : '—';
-        return `<div class="card stat"><div class="label">${esc(c.symbol)} · ${esc(c.name)}</div>
-          <div class="value" style="font-size:1.2rem;">${r ? pln(r.pln, r.pln >= 100 ? 2 : 4) : '—'}</div>
-          <div class="sub-value" style="color:${typeof ch === 'number' && ch < 0 ? 'var(--danger)' : 'var(--accent-bright)'}">${chText}</div></div>`;
+        return `<tr data-coin="${c.symbol}"><td><span style="display:inline-flex;align-items:center;gap:8px;">${icon(c)}<b>${esc(c.symbol)}</b> <small style="color:var(--muted)">${esc(c.name)}</small></span></td>
+          <td>${r ? priceFmt(r.pln) : '—'}</td><td>${changeHtml(r?.change)}</td></tr>`;
       }).join('');
     }
 
-    function renderCoinOptions() {
-      els.coin.innerHTML = COINS.map((c) => `<option value="${c.symbol}">${esc(c.symbol)} — ${esc(c.name)}</option>`).join('');
+    function renderList() {
+      const term = els.search.value.trim().toLowerCase();
+      const items = COINS.filter((c) => !term || c.symbol.toLowerCase().includes(term) || c.name.toLowerCase().includes(term));
+      els.list.innerHTML = items.length ? items.map((c) => {
+        const r = rates[c.symbol];
+        return `<li class="fx-item" role="option" data-coin="${c.symbol}" aria-selected="${c.symbol === coinSymbol}">${icon(c)}
+          <span class="nm"><b>${esc(c.symbol)}</b><small>${esc(c.name)}</small></span>
+          <span class="pr">${r ? priceFmt(r.pln) : '—'}<small>${changeHtml(r?.change)}</small></span></li>`;
+      }).join('') : '<li class="fx-empty">Nic nie znaleziono</li>';
     }
 
-    function onCoinChange() {
-      const c = coinBy(els.coin.value);
-      const saved = wallets[c.symbol];
+    function openMenu() { els.menu.hidden = false; els.coinBtn.setAttribute('aria-expanded', 'true'); els.search.value = ''; renderList(); els.search.focus(); }
+    function closeMenu() { els.menu.hidden = true; els.coinBtn.setAttribute('aria-expanded', 'false'); }
+
+    function selectCoin(symbol) {
+      coinSymbol = symbol;
+      const c = coinBy(symbol);
+      q('fx-coin-sym').textContent = c.symbol;
+      q('fx-coin-ico').style.background = `hsl(${c.hue} 65% 42%)`;
+      q('fx-coin-ico').textContent = c.symbol.slice(0, 3);
+      const saved = wallets[symbol];
       els.network.innerHTML = c.networks.map((n) => `<option>${esc(n)}</option>`).join('');
       if (saved?.network && c.networks.includes(saved.network)) els.network.value = saved.network;
       els.address.value = saved?.address || '';
+      closeMenu();
       updateFromPln();
     }
 
     function updateFromPln() {
       const rate = currentRate();
-      els.rateLine.textContent = rate ? `Kurs poglądowy: 1 ${els.coin.value} = ${pln(rate, rate >= 100 ? 2 : 4)}` : '';
+      els.rateLine.textContent = rate ? `1 ${coinSymbol} = ${priceFmt(rate)}` : '—';
+      els.rateChange.innerHTML = rate ? changeHtml(rates[coinSymbol].change) + ' / 24h' : '';
       const v = parseFloat(els.pln.value);
       els.amount.value = rate && v > 0 ? Number((v / rate).toPrecision(8)) : '';
     }
@@ -185,7 +270,7 @@
     async function saveWallet() {
       const address = els.address.value.trim();
       if (!validAddress(address)) throw new Error('Adres wygląda nieprawidłowo (14–128 znaków, bez spacji).');
-      const row = { partner_id: session.user.id, coin: els.coin.value, network: els.network.value, address, updated_at: new Date().toISOString() };
+      const row = { partner_id: session.user.id, coin: coinSymbol, network: els.network.value, address, updated_at: new Date().toISOString() };
       const { error } = await supabase.from('partner_wallets').upsert(row, { onConflict: 'partner_id,coin' });
       if (error) throw error;
       wallets[row.coin] = { address, network: row.network };
@@ -196,20 +281,37 @@
         .select('created_at, coin, amount_pln, amount_coin, rate_pln, status')
         .eq('partner_id', session.user.id).order('created_at', { ascending: false }).limit(20);
       if (error) console.error(error);
-      const body = document.getElementById('orders-tbody');
-      document.getElementById('no-orders').hidden = !!(data && data.length);
-      body.innerHTML = (data || []).map((o) => `<tr>
+      q('no-orders').hidden = !!(data && data.length);
+      q('orders-tbody').innerHTML = (data || []).map((o) => `<tr>
         <td>${new Date(o.created_at).toLocaleString('pl-PL')}</td><td>${esc(o.coin)}</td>
         <td>${pln(o.amount_pln)}</td><td>${coinFmt(o.amount_coin, Number(o.rate_pln))}</td><td>${esc(o.status)}</td></tr>`).join('');
     }
 
-    document.getElementById('o-save-wallet').addEventListener('click', async () => {
+    // --- zdarzenia ---
+    els.coinBtn.addEventListener('click', () => (els.menu.hidden ? openMenu() : closeMenu()));
+    els.search.addEventListener('input', renderList);
+    els.search.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); const first = els.list.querySelector('[data-coin]'); if (first) selectCoin(first.dataset.coin); }
+      if (e.key === 'Escape') { closeMenu(); els.coinBtn.focus(); }
+    });
+    els.list.addEventListener('click', (e) => { const li = e.target.closest('[data-coin]'); if (li) selectCoin(li.dataset.coin); });
+    q('board-tbody').addEventListener('click', (e) => { const tr = e.target.closest('[data-coin]'); if (tr) { selectCoin(tr.dataset.coin); window.scrollTo({ top: 0, behavior: 'smooth' }); } });
+    document.addEventListener('click', (e) => { if (!els.menu.hidden && !e.target.closest('.fx-box')) closeMenu(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !els.menu.hidden) closeMenu(); });
+
+    q('fx-chips').innerHTML = QUICK_AMOUNTS.map((a) => `<button type="button" class="fx-chip" data-amt="${a}">${a} zł</button>`).join('');
+    q('fx-chips').addEventListener('click', (e) => { const b = e.target.closest('[data-amt]'); if (b) { els.pln.value = b.dataset.amt; updateFromPln(); } });
+
+    els.pln.addEventListener('input', updateFromPln);
+    els.amount.addEventListener('input', updateFromAmount);
+
+    q('o-save-wallet').addEventListener('click', async () => {
       els.msg.textContent = 'Zapisywanie adresu...';
-      try { await saveWallet(); els.msg.textContent = 'Adres zapisany dla ' + els.coin.value + '.'; }
+      try { await saveWallet(); els.msg.textContent = 'Adres zapisany dla ' + coinSymbol + '.'; }
       catch (e) { els.msg.textContent = 'Błąd: ' + (e.message || e); }
     });
 
-    document.getElementById('order-form').addEventListener('submit', async (e) => {
+    q('order-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const rate = currentRate();
       const amountPln = parseFloat(els.pln.value);
@@ -223,13 +325,8 @@
       try {
         await saveWallet();
         const { error } = await supabase.from('crypto_orders').insert({
-          partner_id: session.user.id,
-          coin: els.coin.value,
-          network: els.network.value,
-          amount_pln: amountPln,
-          rate_pln: rate,
-          amount_coin: amountPln / rate,
-          wallet_address: address,
+          partner_id: session.user.id, coin: coinSymbol, network: els.network.value,
+          amount_pln: amountPln, rate_pln: rate, amount_coin: amountPln / rate, wallet_address: address,
         });
         if (error) throw error;
         els.msg.textContent = 'Zlecenie wysłane. Pracownik zrealizuje je ręcznie.';
@@ -242,23 +339,19 @@
       }
     });
 
-    els.coin.addEventListener('change', onCoinChange);
-    els.pln.addEventListener('input', updateFromPln);
-    els.amount.addEventListener('input', updateFromAmount);
-
     (async () => {
       const ctx = await requireSession();
       if (!ctx) return;
       session = ctx.session;
       wireLogout('logout-btn');
 
-      renderCoinOptions();
       const { data: w } = await supabase.from('partner_wallets').select('coin, network, address').eq('partner_id', session.user.id);
       (w || []).forEach((r) => { wallets[r.coin] = { address: r.address, network: r.network }; });
 
-      document.getElementById('loading').hidden = true;
-      document.getElementById('content').hidden = false;
-      onCoinChange();
+      q('loading').hidden = true;
+      q('content').hidden = false;
+      renderBoard();
+      selectCoin('BTC');
       await Promise.all([loadRates(), loadOrders()]);
       setInterval(loadRates, 60000);
     })();
