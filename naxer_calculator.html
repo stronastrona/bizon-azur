@@ -114,14 +114,6 @@
   .placeholder { margin: 8px 0 0; padding: 16px; text-align: center; font-size: 0.88rem; color: var(--muted);
     border: 1px dashed rgba(255,255,255,0.14); border-radius: 14px; }
 
-  .table-wrap { margin-top: 16px; max-height: 340px; overflow: auto; border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; }
-  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-  caption { text-align: left; padding: 10px 14px; font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-  th, td { padding: 9px 14px; text-align: right; border-top: 1px solid rgba(255,255,255,0.06); white-space: nowrap; }
-  th:first-child, td:first-child { text-align: left; }
-  th { position: sticky; top: 0; background: #0b0f1c; color: var(--muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
-  td { font-family: var(--mono); }
-  td.up { color: var(--up); } td.down { color: var(--down); }
 
   /* ============================================================
      ZASTRZEZENIA (obowiazkowe, mala czcionka)
@@ -300,20 +292,14 @@ function formatPct(n, digits) {
 
 /* ============================================================
    KALKULATOR: obliczenia
-   Efektywna stopa miesieczna z rocznej stopy zysku (procent skladany):
-     m = (1 + roczny/100)^(1/12) - 1
-   Kapital po k miesiacach = kwota * (1 + m)^k
+   Prosty rachunek, bez miesiecznego przyrostu:
+     zysk  = kwota * stopa / 100
+     razem = kwota + zysk
+     miesiecznie = razem / 12
    ============================================================ */
 function compute(amount, annualPct) {
-  const m = Math.pow(1 + annualPct / 100, 1 / 12) - 1;
-  const rows = [];
-  let capital = amount;
-  for (let month = 1; month <= 12; month++) {
-    const gain = capital * m;
-    capital += gain;
-    rows.push({ month, gain, capital });
-  }
-  return { m, rows, final: capital, totalGain: capital - amount };
+  const totalGain = amount * annualPct / 100;
+  return { final: amount + totalGain, totalGain };
 }
 
 /* ============================================================
@@ -343,22 +329,11 @@ function update() {
   const res = compute(a.value, tier.pct);
   const dir = res.totalGain >= 0 ? 'up' : 'down';
   const sign = (n) => (n >= 0 ? '+' : '');
-  const rowsHtml = res.rows.map(x => {
-    const d = x.gain >= 0 ? 'up' : 'down';
-    return `<tr><td>${x.month}</td><td class="${d}">${sign(x.gain)}${formatPLN(x.gain)}</td><td>${formatPLN(x.capital)}</td></tr>`;
-  }).join('');
 
   resultsEl.innerHTML = `
     <div class="summary">
       <div class="tile"><div class="k">Kapitał po 12 miesiącach</div><div class="v">${formatPLN(res.final)}</div></div>
       <div class="tile"><div class="k">${res.totalGain >= 0 ? 'Łączny wzrost' : 'Łączny spadek'}</div><div class="v ${dir}">${sign(res.totalGain)}${formatPLN(res.totalGain)}</div></div>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <caption>Rozkład wzrostu kapitału na 12 miesięcy</caption>
-        <thead><tr><th scope="col">Miesiąc</th><th scope="col">Przyrost</th><th scope="col">Kapitał po miesiącu</th></tr></thead>
-        <tbody>${rowsHtml}</tbody>
-      </table>
     </div>
     <div class="split">
       <div class="head">Obliczenie miesięczne</div>
