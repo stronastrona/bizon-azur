@@ -51,15 +51,18 @@
      ============================================================ */
   .logo {
     margin: 0; display: inline-block;
-    font-size: clamp(3rem, 12vw, 6.5rem); font-weight: 900; letter-spacing: 0.22em;
-    padding-left: 0.22em;                     /* wyrownuje optycznie letter-spacing */
-    color: #1e40e6;
+    font-size: clamp(3.4rem, 15vw, 8rem); font-weight: 900; letter-spacing: 0.2em;
+    padding-left: 0.2em;                      /* wyrownuje optycznie letter-spacing */
+    color: #1e40e6;                           /* wypelnienie: ciemny niebieski */
+    -webkit-text-stroke: 2px #8fb0ff;         /* jasny, cienki kontur = wyrazny brzeg liter */
+    paint-order: stroke fill;
     text-shadow:
-      0 0 4px  rgba(90, 130, 255, 0.85),
-      0 0 14px rgba(40, 80, 240, 0.95),
-      0 0 34px rgba(30, 64, 230, 0.85),
-      0 0 70px rgba(24, 50, 190, 0.75),
-      0 0 120px rgba(16, 34, 150, 0.6);
+      0 0 3px  rgba(200, 220, 255, 0.9),
+      0 0 10px rgba(90, 130, 255, 1),
+      0 0 24px rgba(50, 90, 255, 0.95),
+      0 0 50px rgba(30, 64, 230, 0.9),
+      0 0 90px rgba(24, 50, 190, 0.8),
+      0 0 150px rgba(16, 34, 150, 0.65);
     animation: flicker 7s infinite;
     user-select: none;
   }
@@ -93,6 +96,13 @@
   .field input::placeholder { color: #566079; }
   .field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,134,255,0.22); }
   .field input[aria-invalid="true"] { border-color: var(--down); }
+  .readout { display: block; width: 100%; padding: 13px 14px; font-size: 1.15rem; font-family: var(--mono); color: var(--accent);
+    background: rgba(91,134,255,0.07); border: 1px dashed rgba(91,134,255,0.35); border-radius: 12px; min-height: 52px; }
+  .split { margin-top: 16px; padding: 16px; border-radius: 14px; border: 1px solid rgba(91,134,255,0.35); background: rgba(91,134,255,0.06); }
+  .split .head { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  .split .line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 0; border-top: 1px solid rgba(255,255,255,0.06); font-size: 0.88rem; }
+  .split .line:first-of-type { border-top: none; }
+  .split .line b { font-family: var(--mono); font-size: 1.05rem; white-space: nowrap; }
   .err { min-height: 1.1em; margin: 6px 2px 0; font-size: 0.76rem; color: var(--down); }
 
   .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
@@ -141,8 +151,8 @@
 
     <main>
       <section class="calc" aria-labelledby="calc-title">
-        <h2 id="calc-title">Symulacja: co by było, gdyby…</h2>
-        <p class="lead">Wpisz kwotę i historyczny wynik instrumentu z ostatnich 12 miesięcy. Wyliczenia aktualizują się na bieżąco.</p>
+        <h2 id="calc-title">Symulacja zysku (12 miesięcy)</h2>
+        <p class="lead">Wpisz kwotę wpłaty. Stopa zysku dobiera się automatycznie według progu kwoty, a wyliczenia aktualizują się na bieżąco.</p>
 
         <div class="fields">
           <div class="field">
@@ -151,22 +161,22 @@
             <p class="err" id="amount-err" role="alert"></p>
           </div>
           <div class="field">
-            <label for="ret">Wynik historyczny instrumentu za ostatnie 12 miesięcy (%)</label>
-            <input id="ret" type="text" inputmode="decimal" autocomplete="off" placeholder="np. 12,5" aria-describedby="ret-err">
-            <p class="err" id="ret-err" role="alert"></p>
+            <label for="rate-out">Zakładana stopa zysku (rocznie)</label>
+            <output id="rate-out" class="readout" for="amount" aria-live="polite">—</output>
+            <p class="err" id="tier-note" style="color: var(--muted);"></p>
           </div>
         </div>
 
         <div id="results" aria-live="polite">
-          <p class="placeholder">Wpisz obie wartości, aby zobaczyć symulację.</p>
+          <p class="placeholder">Wpisz kwotę wpłaty, aby zobaczyć symulację.</p>
         </div>
       </section>
 
       <div class="disclaimer" role="note">
         <strong>Ważne zastrzeżenia:</strong>
         <ul>
-          <li>Kalkulator bazuje <strong>wyłącznie na danych historycznych wpisanych ręcznie</strong> i pokazuje symulację „gdyby wpłata została ulokowana rok temu w instrument o takim wyniku”.</li>
-          <li>Wyniki historyczne <strong>nie są gwarancją ani prognozą przyszłych zysków</strong> i mogą się nie powtórzyć.</li>
+          <li>Kalkulator pokazuje <strong>symulację przy założonych stopach zysku przypisanych do progów kwoty wpłaty</strong>. To założenia obliczeniowe, a nie rzeczywiste wyniki inwestycji ani oferta.</li>
+          <li>Założone stopy <strong>nie są gwarancją ani prognozą zysków</strong>; rzeczywisty wynik może być niższy, a zainwestowany kapitał może się zmniejszyć.</li>
           <li>Narzędzie ma charakter <strong>testowy i poglądowy</strong>; nie stanowi rekomendacji inwestycyjnej ani porady finansowej.</li>
         </ul>
       </div>
@@ -246,7 +256,8 @@
    Akceptuje przecinek lub kropke, spacje jako separator tysiecy.
    ============================================================ */
 const amountEl = document.getElementById('amount');
-const retEl = document.getElementById('ret');
+const rateOutEl = document.getElementById('rate-out');
+const tierNoteEl = document.getElementById('tier-note');
 const resultsEl = document.getElementById('results');
 
 /** Zamienia tekst na liczbe. Zwraca {empty} | {error} | {value}. */
@@ -267,12 +278,18 @@ function validateAmount(raw) {
   return p;
 }
 
-function validateReturn(raw) {
-  const p = parseNumber(raw);
-  if (p.empty || p.error) return p;
-  if (p.value <= -100) return { error: 'Wynik musi być większy niż −100% (nie można stracić więcej niż całość).' };
-  if (p.value > 100000) return { error: 'Maksymalna wartość to 100 000%.' };
-  return p;
+/* ============================================================
+   PROGI STOPY ZYSKU (rocznej) zaleznie od kwoty wpłaty.
+   "do X" = wlacznie z X. Zmieniasz progi tutaj, w jednym miejscu.
+   ============================================================ */
+const TIERS = [
+  { max: 1000,     pct: 15,   label: 'do 1 000 zł' },
+  { max: 4000,     pct: 17,   label: 'od 1 000 do 4 000 zł' },
+  { max: 8000,     pct: 18.5, label: 'od 4 000 do 8 000 zł' },
+  { max: Infinity, pct: 20,   label: 'powyżej 8 000 zł' }
+];
+function tierFor(amount) {
+  return TIERS.find(t => amount <= t.max);
 }
 
 /* ============================================================
@@ -291,7 +308,7 @@ function formatPct(n, digits) {
 
 /* ============================================================
    KALKULATOR: obliczenia
-   Efektywna stopa miesieczna z rocznego wyniku (procent skladany):
+   Efektywna stopa miesieczna z rocznej stopy zysku (procent skladany):
      m = (1 + roczny/100)^(1/12) - 1
    Kapital po k miesiacach = kwota * (1 + m)^k
    ============================================================ */
@@ -317,16 +334,21 @@ function setError(input, id, message) {
 
 function update() {
   const a = validateAmount(amountEl.value);
-  const r = validateReturn(retEl.value);
   setError(amountEl, 'amount-err', a.error);
-  setError(retEl, 'ret-err', r.error);
 
-  if (a.value === undefined || r.value === undefined) {
-    resultsEl.innerHTML = '<p class="placeholder">Wpisz obie wartości, aby zobaczyć symulację.</p>';
+  if (a.value === undefined) {
+    rateOutEl.textContent = '—';
+    tierNoteEl.textContent = '';
+    resultsEl.innerHTML = '<p class="placeholder">Wpisz kwotę wpłaty, aby zobaczyć symulację.</p>';
     return;
   }
 
-  const res = compute(a.value, r.value);
+  // stopa zysku dobierana automatycznie z progu kwoty
+  const tier = tierFor(a.value);
+  rateOutEl.textContent = formatPct(tier.pct, tier.pct % 1 ? 1 : 0);
+  tierNoteEl.textContent = 'Próg: ' + tier.label;
+
+  const res = compute(a.value, tier.pct);
   const dir = res.totalGain >= 0 ? 'up' : 'down';
   const sign = (n) => (n >= 0 ? '+' : '');
   const rowsHtml = res.rows.map(x => {
@@ -346,11 +368,17 @@ function update() {
         <thead><tr><th scope="col">Miesiąc</th><th scope="col">Przyrost</th><th scope="col">Kapitał po miesiącu</th></tr></thead>
         <tbody>${rowsHtml}</tbody>
       </table>
+    </div>
+    <div class="split">
+      <div class="head">Podział na 12 miesięcy</div>
+      <div class="line"><span>Zysk</span><b class="${dir}">${sign(res.totalGain)}${formatPLN(res.totalGain)}</b></div>
+      <div class="line"><span>Łączna kwota (wpłata + zysk)</span><b>${formatPLN(res.final)}</b></div>
+      <div class="line"><span>Łączna kwota ÷ 12</span><b>${formatPLN(res.final / 12)}</b></div>
+      <div class="line"><span>Sam zysk ÷ 12</span><b class="${dir}">${sign(res.totalGain)}${formatPLN(res.totalGain / 12)}</b></div>
     </div>`;
 }
 
 amountEl.addEventListener('input', update);
-retEl.addEventListener('input', update);
 </script>
 </body>
 </html>
