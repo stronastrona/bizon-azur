@@ -101,9 +101,11 @@
   .split .line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 0; border-top: 1px solid rgba(255,255,255,0.06); font-size: 0.88rem; }
   .split .line:first-of-type { border-top: none; }
   .split .line b { font-family: var(--mono); font-size: 1.05rem; white-space: nowrap; }
+  .split .line.total { font-weight: 700; }
+  .split .line.total b { font-size: 1.3rem; color: var(--accent); }
   .err { min-height: 1.1em; margin: 6px 2px 0; font-size: 0.76rem; color: var(--down); }
 
-  .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
+  .summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 8px; }
   @media (max-width: 640px) { .summary { grid-template-columns: 1fr; } }
   .tile { background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 14px 16px; }
   .tile .k { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
@@ -351,7 +353,6 @@ function update() {
     <div class="summary">
       <div class="tile"><div class="k">Kapitał po 12 miesiącach</div><div class="v">${formatPLN(res.final)}</div></div>
       <div class="tile"><div class="k">${res.totalGain >= 0 ? 'Łączny wzrost' : 'Łączny spadek'}</div><div class="v ${dir}">${sign(res.totalGain)}${formatPLN(res.totalGain)}</div></div>
-      <div class="tile"><div class="k">Efektywna stopa miesięczna</div><div class="v">${formatPct(res.m * 100, 4)}</div></div>
     </div>
     <div class="table-wrap">
       <table>
@@ -361,10 +362,11 @@ function update() {
       </table>
     </div>
     <div class="split">
-      <div class="head">Podział na 12 miesięcy</div>
-      <div class="line"><span>Zysk</span><b class="${dir}">${sign(res.totalGain)}${formatPLN(res.totalGain)}</b></div>
-      <div class="line"><span>Łączna kwota (wpłata + zysk)</span><b>${formatPLN(res.final)}</b></div>
-      <div class="line"><span>Łączna kwota ÷ 12</span><b>${formatPLN(res.final / 12)}</b></div>
+      <div class="head">Obliczenie miesięczne</div>
+      <div class="line"><span>Wpłata</span><b>${formatPLN(a.value)}</b></div>
+      <div class="line"><span>+ Zysk (${formatPct(tier.pct, tier.pct % 1 ? 1 : 0)} rocznie)</span><b class="${dir}">${sign(res.totalGain)}${formatPLN(res.totalGain)}</b></div>
+      <div class="line"><span>= Razem</span><b>${formatPLN(res.final)}</b></div>
+      <div class="line total"><span>Razem ÷ 12 = miesięcznie</span><b>${formatPLN(res.final / 12)}</b></div>
       <div class="line"><span>Sam zysk ÷ 12</span><b class="${dir}">${sign(res.totalGain)}${formatPLN(res.totalGain / 12)}</b></div>
     </div>`;
 }
