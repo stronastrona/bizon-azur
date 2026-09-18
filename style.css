@@ -340,3 +340,52 @@ footer.page-footer { margin-top: 32px; font-size: 0.78rem; color: var(--muted); 
      karty logowania (do srodka), tak jak kopia po prawej. */
   transform: scaleX(-1);
 }
+
+/* --- Strzalki nawigacji w kolkach (obok "Wyloguj") --- */
+.nav-arrows { display: flex; align-items: center; gap: 8px; }
+.nav-circle {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  box-shadow: none;
+}
+.nav-circle svg { width: 18px; height: 18px; }
+.nav-circle:hover:not(:disabled) { border-color: var(--accent); filter: none; }
+.nav-circle:disabled { opacity: 0.35; cursor: default; }
+.nav-flame {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.5);
+  animation: flame-glow 1.3s ease-in-out infinite alternate;
+}
+.nav-flame:disabled { animation: none; box-shadow: none; }
+.nav-flame .flame-icon {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  width: 17px;
+  height: 17px;
+  margin-left: -8px;
+  color: var(--accent);
+  transform-origin: 50% 100%;
+  animation: flame-flicker 0.45s ease-in-out infinite alternate;
+}
+@keyframes flame-glow {
+  from { box-shadow: 0 0 6px rgba(var(--accent-rgb), 0.35); }
+  to { box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.75); }
+}
+@keyframes flame-flicker {
+  from { transform: scale(1, 1) rotate(-4deg); }
+  to { transform: scale(0.88, 1.15) rotate(4deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-flame, .nav-flame .flame-icon { animation: none; }
+}
