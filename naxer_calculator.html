@@ -67,6 +67,24 @@
     user-select: none;
   }
   .tagline { margin: 6px 0 0; font-size: 0.78rem; letter-spacing: 0.32em; text-transform: uppercase; color: var(--muted); }
+
+  /* ============================================================
+     POLE KWOTY: wyniesione pod logo, na srodku, BEZ nieprzezroczystego
+     tla - ma stac wprost na zorzy (tylko lekkie "szklo" dla czytelnosci).
+     ============================================================ */
+  .hero-input { width: 100%; max-width: 420px; margin: clamp(28px, 6vh, 56px) auto 0; text-align: center; }
+  .hero-input label { display: block; font-size: 0.78rem; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.12em; margin-bottom: 10px; text-shadow: 0 1px 6px rgba(0,0,0,0.8); }
+  .hero-input input { width: 100%; text-align: center; padding: 18px 18px; font-size: 1.6rem; font-weight: 700;
+    font-family: var(--mono); color: var(--text);
+    background: rgba(255, 255, 255, 0.055);      /* przezroczyste - zorza ma byc widoczna przez pole */
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.22); border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08); }
+  .hero-input input::placeholder { color: rgba(232,236,248,0.35); }
+  .hero-input input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(91,134,255,0.22); }
+  .hero-input input[aria-invalid="true"] { border-color: var(--down); }
+  .hero-input .err { text-shadow: 0 1px 6px rgba(0,0,0,0.8); }
   /* migotanie co ~7 s: krotka seria przygasniec, poza tym stabilne */
   @keyframes flicker {
     0%, 88%, 100% { opacity: 1; }
@@ -86,8 +104,7 @@
     -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255,255,255,0.04); }
 
-  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 640px) { .fields { grid-template-columns: 1fr; } }
+  .fields { display: grid; grid-template-columns: 1fr; gap: 16px; max-width: 320px; margin: 0 auto; }
   .field label { display: block; font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 7px; }
   .field input { width: 100%; padding: 13px 14px; font-size: 1.15rem; font-family: var(--mono); color: var(--text);
     background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; }
@@ -114,6 +131,14 @@
   .placeholder { margin: 8px 0 0; padding: 16px; text-align: center; font-size: 0.88rem; color: var(--muted);
     border: 1px dashed rgba(255,255,255,0.14); border-radius: 14px; }
 
+  .table-wrap { margin-top: 16px; max-height: 320px; overflow: auto; border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  caption { text-align: left; padding: 10px 14px; font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  th, td { padding: 9px 14px; text-align: right; border-top: 1px solid rgba(255,255,255,0.06); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { position: sticky; top: 0; background: #0b0f1c; color: var(--muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td { font-family: var(--mono); }
+
 
   /* ============================================================
      ZASTRZEZENIA (obowiazkowe, mala czcionka)
@@ -139,16 +164,16 @@
   <div class="page">
     <header>
       <h1 class="logo">NAXER</h1>
+      <div class="hero-input">
+        <label for="amount">Kwota wpłaty (PLN)</label>
+        <input id="amount" type="text" inputmode="decimal" autocomplete="off" placeholder="np. 10 000" aria-describedby="amount-err">
+        <p class="err" id="amount-err" role="alert"></p>
+      </div>
     </header>
 
     <main>
       <section class="calc" aria-label="Kalkulator">
         <div class="fields">
-          <div class="field">
-            <label for="amount">Kwota wpłaty (PLN)</label>
-            <input id="amount" type="text" inputmode="decimal" autocomplete="off" placeholder="np. 10 000" aria-describedby="amount-err">
-            <p class="err" id="amount-err" role="alert"></p>
-          </div>
           <div class="field">
             <label for="rate-out">Zakładana stopa zysku (rocznie)</label>
             <output id="rate-out" class="readout" for="amount" aria-live="polite">—</output>
@@ -291,6 +316,23 @@ function formatPct(n, digits) {
 }
 
 /* ============================================================
+   HARMONOGRAM: 12 kolejnych miesiecy od dzisiaj, kazdy z ta sama
+   kwota = 1/12 laczonej kwoty (wplata + zysk). Nazwy miesiecy po
+   polsku z Intl, pierwsza litera duza.
+   ============================================================ */
+const monthFmt = new Intl.DateTimeFormat('pl-PL', { month: 'long', year: 'numeric' });
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+function scheduleRows(monthlyAmount) {
+  const today = new Date();
+  const rows = [];
+  for (let i = 1; i <= 12; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+    rows.push({ label: capitalize(monthFmt.format(d)), amount: monthlyAmount });
+  }
+  return rows;
+}
+
+/* ============================================================
    KALKULATOR: obliczenia
    Prosty rachunek, bez miesiecznego przyrostu:
      zysk  = kwota * stopa / 100
@@ -342,6 +384,13 @@ function update() {
       <div class="line"><span>= Razem</span><b>${formatPLN(res.final)}</b></div>
       <div class="line total"><span>Razem ÷ 12 = miesięcznie</span><b>${formatPLN(res.final / 12)}</b></div>
       <div class="line"><span>Sam zysk ÷ 12</span><b class="${dir}">${sign(res.totalGain)}${formatPLN(res.totalGain / 12)}</b></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <caption>Przykładowy harmonogram wypłat — 1/12 łącznej kwoty co miesiąc</caption>
+        <thead><tr><th scope="col">Miesiąc</th><th scope="col">Kwota (1/12 całości)</th></tr></thead>
+        <tbody>${scheduleRows(res.final / 12).map(r => `<tr><td>${r.label}</td><td>${formatPLN(r.amount)}</td></tr>`).join('')}</tbody>
+      </table>
     </div>`;
 }
 
