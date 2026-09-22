@@ -167,6 +167,21 @@
         <div id="results" aria-live="polite">
           <p class="placeholder">Wpisz kwotę wpłaty, aby zobaczyć symulację.</p>
         </div>
+
+        <!-- Pojawia sie dopiero po wpisaniu poprawnej kwoty (patrz JS, update()).
+             Sam formularz zyje POZA #results, zeby przebudowa wynikow przy
+             kazdym wpisywaniu kwoty nie kasowala tego co user juz wpisal tutaj. -->
+        <div class="split" id="request-box" hidden>
+          <div class="head">Wyślij zapytanie</div>
+          <p style="margin: 0 0 12px; font-size: 0.85rem; color: var(--muted);">Podaj e-mail, a prześlemy Ci szczegółowe dane historyczne dla tej kwoty. System automatycznej wysyłki wdrożymy wkrótce — na razie zapisujemy zapytanie i odezwiemy się ręcznie.</p>
+          <form id="request-form" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <input id="req-email" type="email" required placeholder="twoj@email.pl" autocomplete="email"
+              style="flex: 1; min-width: 200px; padding: 12px 14px; font-size: 0.95rem; font-family: var(--mono); color: var(--text);
+              background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.14); border-radius: 10px;">
+            <button type="submit" id="req-submit">Wyślij zapytanie</button>
+          </form>
+          <p class="err" id="req-msg" role="alert" style="color: var(--muted);"></p>
+        </div>
       </section>
 
       <!-- NOTKA PRAWNA: wklej tutaj tekst od prawnika (zwykly HTML, np. <p>...</p>).
@@ -251,6 +266,20 @@ const amountEl = document.getElementById('amount');
 const rateOutEl = document.getElementById('rate-out');
 const tierNoteEl = document.getElementById('tier-note');
 const resultsEl = document.getElementById('results');
+const requestBoxEl = document.getElementById('request-box');
+const requestFormEl = document.getElementById('request-form');
+const reqEmailEl = document.getElementById('req-email');
+const reqSubmitEl = document.getElementById('req-submit');
+const reqMsgEl = document.getElementById('req-msg');
+
+// Ta sama baza co reszta strony BizON (Dashboard -> Project Settings -> API).
+// anon key jest bezpieczny w kodzie frontendowym - dostep kontroluja
+// polityki RLS w schema.sql / migrations/2026-09-naxer-requests.sql.
+const SUPABASE_URL = 'https://tmlaeinytlxyaavalmle.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtbGFlaW55dGx4eWFhdmFsbWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MDA0OTQsImV4cCI6MjEwMTE3NjQ5NH0.UBHyYeq5UEXFcS6QvgG4D-e5aWcHUqdPBQ1EMJBOyG8';
+
+let currentAmount = null;
+let currentRatePct = null;
 
 /** Zamienia tekst na liczbe. Zwraca {empty} | {error} | {value}. */
 function parseNumber(raw) {
@@ -343,11 +372,17 @@ function update() {
     rateOutEl.textContent = '—';
     tierNoteEl.textContent = '';
     resultsEl.innerHTML = '<p class="placeholder">Wpisz kwotę wpłaty, aby zobaczyć symulację.</p>';
+    requestBoxEl.hidden = true;      // znika razem z wynikami, dopoki kwota niepoprawna
+    currentAmount = null;
+    currentRatePct = null;
     return;
   }
 
   // stopa zysku dobierana automatycznie z progu kwoty
   const tier = tierFor(a.value);
+  currentAmount = a.value;
+  currentRatePct = tier.pct;
+  requestBoxEl.hidden = false;
   rateOutEl.textContent = formatPct(tier.pct, tier.pct % 1 ? 1 : 0);
   tierNoteEl.textContent = 'Próg: ' + tier.label;
 
@@ -378,6 +413,58 @@ function update() {
 }
 
 amountEl.addEventListener('input', update);
+
+/* ============================================================
+   "WYSLIJ ZAPYTANIE": zwykly fetch() do REST API Supabase (bez
+   biblioteki supabase-js, zeby plik zostal jednym samodzielnym
+   plikiem). Zapisuje tylko wiersz w bazie - wysylka maila to
+   osobny system, ktory zrobimy pozniej.
+   ============================================================ */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+requestFormEl.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = reqEmailEl.value.trim();
+
+  if (!EMAIL_RE.test(email)) {
+    reqMsgEl.style.color = 'var(--down)';
+    reqMsgEl.textContent = 'Podaj poprawny adres e-mail.';
+    return;
+  }
+  if (currentAmount === null || currentRatePct === null) {
+    reqMsgEl.style.color = 'var(--down)';
+    reqMsgEl.textContent = 'Najpierw wpisz poprawną kwotę wpłaty powyżej.';
+    return;
+  }
+
+  reqSubmitEl.disabled = true;
+  reqMsgEl.style.color = 'var(--muted)';
+  reqMsgEl.textContent = 'Wysyłanie...';
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/naxer_requests`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ email, amount_pln: currentAmount, rate_pct: currentRatePct }),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    reqMsgEl.style.color = 'var(--up)';
+    reqMsgEl.textContent = 'Zapisano. Odezwiemy się na podany adres z danymi historycznymi.';
+    requestFormEl.reset();
+  } catch (err) {
+    console.error(err);
+    reqMsgEl.style.color = 'var(--down)';
+    reqMsgEl.textContent = 'Nie udało się wysłać zapytania. Spróbuj ponownie za chwilę.';
+  } finally {
+    reqSubmitEl.disabled = false;
+  }
+});
 </script>
 </body>
 </html>
