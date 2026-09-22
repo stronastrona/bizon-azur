@@ -318,29 +318,6 @@ footer.page-footer { margin-top: 32px; font-size: 0.78rem; color: var(--muted); 
   border-color: #d0d0d0;
 }
 
-/* --- Maskotka na stronie logowania ---
-   Widocznosc i pozycja pionowa (rowna sie z dolna krawedzia karty
-   logowania) sa liczone w JS (patrz alignBisonsToCard w index.html),
-   zeby dzialalo poprawnie niezaleznie od skalowania/zoomu przegladarki. */
-.bison-decor {
-  position: fixed;
-  width: min(30vw, 420px);
-  height: auto;
-  opacity: 0.9;
-  pointer-events: none;
-  z-index: 0;
-  display: none;
-}
-.bison-decor-right {
-  right: 3vw;
-}
-.bison-decor-left {
-  left: 3vw;
-  /* Oryginal patrzy w lewo; odbicie w poziomie zwraca glowe w strone
-     karty logowania (do srodka), tak jak kopia po prawej. */
-  transform: scaleX(-1);
-}
-
 /* --- Strzalki nawigacji w kolkach (obok "Wyloguj") --- */
 .nav-arrows { display: flex; align-items: center; gap: 8px; }
 .nav-circle {

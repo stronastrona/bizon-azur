@@ -8,8 +8,6 @@
 <script src="js/theme.js"></script>
 </head>
 <body>
-  <img src="img/bizon.png" alt="" aria-hidden="true" class="bison-decor bison-decor-right">
-  <img src="img/bizon.png" alt="" aria-hidden="true" class="bison-decor bison-decor-left">
   <div class="wrap-narrow">
     <div class="theme-switcher">
       <button type="button" class="theme-arrow" id="theme-prev" aria-label="Poprzedni motyw">‹</button>
@@ -90,32 +88,6 @@
     slotNext.addEventListener('click', () => goToTheme(themeIndex + 1));
 
     renderThemeCarousel();
-
-    // Wyrownaj dolna krawedz maskotek do dolnej krawedzi karty logowania,
-    // i pokazuj kazda tylko jesli realnie miesci sie obok karty (liczone
-    // z faktycznej szerokosci okna, a nie ze sztywnego breakpointu -
-    // dziala poprawnie tez przy skalowaniu/zoomie przegladarki).
-    function alignBisonsToCard() {
-      const card = document.querySelector('.card').getBoundingClientRect();
-      const gap = 24;
-      document.querySelectorAll('.bison-decor').forEach((el) => {
-        // Uwaga: przy display:none getBoundingClientRect() zwraca 0,
-        // wiec szerokosc liczymy z computed style (dziala niezaleznie
-        // od tego czy element jest aktualnie renderowany).
-        const w = parseFloat(getComputedStyle(el).width) || 0;
-        const fitsRight = el.classList.contains('bison-decor-right') && (window.innerWidth - card.right - w) > gap;
-        const fitsLeft = el.classList.contains('bison-decor-left') && (card.left - w) > gap;
-        if (fitsRight || fitsLeft) {
-          el.style.display = 'block';
-          el.style.bottom = (window.innerHeight - card.bottom) + 'px';
-        } else {
-          el.style.display = 'none';
-        }
-      });
-    }
-    window.addEventListener('load', alignBisonsToCard);
-    window.addEventListener('resize', alignBisonsToCard);
-    alignBisonsToCard();
 
     const form = document.getElementById('login-form');
     const errorEl = document.getElementById('login-error');
