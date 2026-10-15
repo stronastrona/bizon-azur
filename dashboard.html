@@ -42,6 +42,27 @@
         </div>
       </div>
 
+      <!-- Widoczne tylko gdy admin ustawil booster temu wspolnikowi
+           (tabela naxer_boosters) - patrz loadNaxerBooster() w JS. -->
+      <section class="card naxer-booster" id="naxer-booster" hidden>
+        <div class="naxer-booster-title">NAXER BOOSTER</div>
+        <div class="grid-stats">
+          <div class="card stat">
+            <div class="label">Kwota</div>
+            <div class="value" id="booster-amount">—</div>
+          </div>
+          <div class="card stat">
+            <div class="label">Zysk</div>
+            <div class="value" id="booster-profit">—</div>
+            <div class="sub-value" id="booster-rate">—</div>
+          </div>
+          <div class="card stat">
+            <div class="label">1/12</div>
+            <div class="value" id="booster-monthly">—</div>
+          </div>
+        </div>
+      </section>
+
       <section>
         <h2>Podział Twojego kapitału na instrumenty</h2>
         <div class="grid-stats" id="allocation-grid"></div>
@@ -125,10 +146,13 @@
       document.getElementById('greeting').textContent = 'Witaj, ' + profile.full_name;
       if (profile.is_admin) document.getElementById('admin-link-wrap').hidden = false;
 
-      const [{ data: summaryRows, error: summaryErr }, { data: contributions }] = await Promise.all([
+      const [{ data: summaryRows, error: summaryErr }, { data: contributions }, { data: boosterRow }] = await Promise.all([
         supabase.rpc('partner_summary'),
         supabase.from('contributions').select('amount, contributed_at').eq('partner_id', session.user.id).order('contributed_at', { ascending: false }),
+        supabase.from('naxer_boosters').select('amount_pln').eq('partner_id', session.user.id).maybeSingle(),
       ]);
+
+      renderNaxerBooster(boosterRow?.amount_pln);
 
       document.getElementById('loading').hidden = true;
       document.getElementById('content').hidden = false;
@@ -228,6 +252,31 @@
       { label: 'ETF-y', fraction: 125 / 500, ratePct: 11.8 },
       { label: 'Kryptowaluty', fraction: 125 / 500, ratePct: 17 },
     ];
+
+    // Te same progi co w zakladce NAXER (naxer_calculator.html) - trzymaj
+    // je zsynchronizowane, jesli progi sie kiedys zmienia w jednym miejscu.
+    const NAXER_TIERS = [
+      { max: 1000,     pct: 15 },
+      { max: 4000,     pct: 17 },
+      { max: 8000,     pct: 18.5 },
+      { max: Infinity, pct: 20 },
+    ];
+
+    function renderNaxerBooster(amountPln) {
+      const box = document.getElementById('naxer-booster');
+      const amount = Number(amountPln);
+      if (!amount || amount <= 0) { box.hidden = true; return; }
+
+      const tier = NAXER_TIERS.find((t) => amount <= t.max);
+      const profit = amount * tier.pct / 100;
+      const monthly = (amount + profit) / 12;
+
+      document.getElementById('booster-amount').textContent = money(amount);
+      document.getElementById('booster-profit').textContent = money(profit);
+      document.getElementById('booster-rate').textContent = tier.pct + '% rocznie';
+      document.getElementById('booster-monthly').textContent = money(monthly);
+      box.hidden = false;
+    }
 
     function renderAllocations(totalContributed) {
       const grid = document.getElementById('allocation-grid');
