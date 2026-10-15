@@ -20,23 +20,23 @@
   border-radius: inherit;
   background: conic-gradient(from var(--fire-angle),
     transparent 0deg,
-    rgba(30, 64, 230, 0.95) 35deg,
-    rgba(143, 176, 255, 1) 80deg,
-    rgba(30, 64, 230, 0.95) 125deg,
+    rgba(30, 64, 230, 0.55) 35deg,
+    rgba(143, 176, 255, 0.65) 80deg,
+    rgba(30, 64, 230, 0.55) 125deg,
     transparent 170deg,
     transparent 190deg,
-    rgba(50, 90, 255, 0.9) 235deg,
-    rgba(143, 176, 255, 1) 280deg,
-    rgba(30, 64, 230, 0.95) 325deg,
+    rgba(50, 90, 255, 0.5) 235deg,
+    rgba(143, 176, 255, 0.65) 280deg,
+    rgba(30, 64, 230, 0.55) 325deg,
     transparent 360deg);
   z-index: -1;
   pointer-events: none;
-  animation: fire-spin 2.6s linear infinite, fire-pulse 0.5s ease-in-out infinite alternate;
+  animation: fire-spin 7s linear infinite, fire-pulse 1.6s ease-in-out infinite alternate;
 }
 @keyframes fire-spin { to { --fire-angle: 360deg; } }
 @keyframes fire-pulse {
-  from { filter: blur(var(--fire-blur, 14px)) saturate(1.3); opacity: 0.8; }
-  to   { filter: blur(calc(var(--fire-blur, 14px) * 1.6)) saturate(1.6); opacity: 1; }
+  from { filter: blur(var(--fire-blur, 14px)) saturate(1); opacity: 0.55; }
+  to   { filter: blur(calc(var(--fire-blur, 14px) * 1.3)) saturate(1.15); opacity: 0.75; }
 }
 @media (prefers-reduced-motion: reduce) {
   .fire-ring::before { animation: none; filter: blur(var(--fire-blur, 14px)); }
