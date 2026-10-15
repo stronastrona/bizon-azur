@@ -66,6 +66,30 @@
         </form>
       </section>
 
+      <section class="card naxer-booster">
+        <h2 style="color:#8fb0ff;">NAXER Booster — przypisz wspólnikowi</h2>
+        <p class="hint" style="margin-top:-6px;">Kwota i zysk liczą się same z progów NAXER. Zapisanie nadpisuje poprzednią kwotę temu wspólnikowi; jeśli go nie miał, box się u niego pojawi.</p>
+        <form id="booster-form">
+          <div class="form-row">
+            <div class="field">
+              <label for="b-partner">Wspólnik</label>
+              <select id="b-partner" required></select>
+            </div>
+            <div class="field">
+              <label for="b-amount">Kwota (zł)</label>
+              <input id="b-amount" type="number" min="1" step="1" required>
+            </div>
+          </div>
+          <button type="submit">Zapisz booster</button>
+          <p id="booster-msg" class="hint"></p>
+        </form>
+        <table style="margin-top:16px;">
+          <thead><tr><th>Wspólnik</th><th>Kwota</th><th>Zysk</th><th>1/12</th><th></th></tr></thead>
+          <tbody id="booster-tbody"></tbody>
+        </table>
+        <p id="no-booster" class="hint" hidden>Nikt nie ma jeszcze boostera.</p>
+      </section>
+
       <section class="card">
         <h2>Podsumowanie wspólników</h2>
         <table>
@@ -122,16 +146,27 @@
 
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+    // Te same progi co w zakladce NAXER i na dashboardzie wspolnika -
+    // trzymaj zsynchronizowane, jesli progi sie kiedys zmienia.
+    const NAXER_TIERS = [
+      { max: 1000,     pct: 15 },
+      { max: 4000,     pct: 17 },
+      { max: 8000,     pct: 18.5 },
+      { max: Infinity, pct: 20 },
+    ];
+    function naxerTierFor(amount) { return NAXER_TIERS.find((t) => amount <= t.max); }
+
     let partners = [];
 
     async function loadAll() {
-      const [{ data: profiles }, { data: summaryRows }, { data: contributions }, { data: valuations }, { data: orders }, { data: naxerRequests }] = await Promise.all([
+      const [{ data: profiles }, { data: summaryRows }, { data: contributions }, { data: valuations }, { data: orders }, { data: naxerRequests }, { data: boosters }] = await Promise.all([
         supabase.from('profiles').select('id, full_name').order('full_name'),
         supabase.rpc('partner_summary'),
         supabase.from('contributions').select('id, amount, contributed_at, partner_id').order('contributed_at', { ascending: false }).limit(50),
         supabase.from('portfolio_valuations').select('id, valuation_date, total_value').order('valuation_date', { ascending: false }).limit(50),
         supabase.from('crypto_orders').select('id, created_at, partner_id, coin, network, amount_pln, rate_pln, amount_coin, wallet_address, status').order('created_at', { ascending: false }).limit(100),
         supabase.from('naxer_requests').select('id, created_at, email, amount_pln, rate_pct, status').order('created_at', { ascending: false }).limit(100),
+        supabase.from('naxer_boosters').select('partner_id, amount_pln').order('updated_at', { ascending: false }),
       ]);
 
       partners = profiles || [];
@@ -139,6 +174,26 @@
 
       const partnerSelect = document.getElementById('c-partner');
       partnerSelect.innerHTML = partners.map((p) => `<option value="${p.id}">${p.full_name}</option>`).join('');
+
+      const boosterSelect = document.getElementById('b-partner');
+      boosterSelect.innerHTML = partners.map((p) => `<option value="${p.id}">${p.full_name}</option>`).join('');
+
+      const boosterBody = document.getElementById('booster-tbody');
+      document.getElementById('no-booster').hidden = !!(boosters && boosters.length);
+      boosterBody.innerHTML = (boosters || []).map((b) => {
+        const amount = Number(b.amount_pln);
+        const tier = naxerTierFor(amount);
+        const profit = amount * tier.pct / 100;
+        const monthly = (amount + profit) / 12;
+        return `
+          <tr>
+            <td>${esc(nameById[b.partner_id] || '—')}</td>
+            <td>${money(amount)}</td>
+            <td>${money(profit)} (${tier.pct}%)</td>
+            <td>${money(monthly)}</td>
+            <td><button type="button" class="secondary" data-remove-booster="${esc(b.partner_id)}" style="padding:5px 10px;">Usuń</button></td>
+          </tr>`;
+      }).join('');
 
       const summaryBody = document.getElementById('summary-tbody');
       summaryBody.innerHTML = (summaryRows || []).map((r) => `
@@ -219,6 +274,16 @@
         await loadAll();
       });
 
+      document.getElementById('booster-tbody').addEventListener('click', async (e) => {
+        const btn = e.target.closest('button[data-remove-booster]');
+        if (!btn) return;
+        if (!confirm('Usunąć booster temu wspólnikowi?')) return;
+        btn.disabled = true;
+        const { error } = await supabase.from('naxer_boosters').delete().eq('partner_id', btn.dataset.removeBooster);
+        if (error) { alert('Błąd usuwania: ' + error.message); btn.disabled = false; return; }
+        await loadAll();
+      });
+
       await loadAll();
       document.getElementById('loading').hidden = true;
       document.getElementById('content').hidden = false;
@@ -250,6 +315,22 @@
         msg.textContent = error ? 'Błąd zapisu: ' + error.message : 'Zapisano.';
         if (!error) {
           document.getElementById('v-value').value = '';
+          await loadAll();
+        }
+      });
+
+      document.getElementById('booster-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('booster-msg');
+        msg.textContent = 'Zapisywanie...';
+        const { error } = await supabase.from('naxer_boosters').upsert({
+          partner_id: document.getElementById('b-partner').value,
+          amount_pln: Number(document.getElementById('b-amount').value),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'partner_id' });
+        msg.textContent = error ? 'Błąd zapisu: ' + error.message : 'Zapisano.';
+        if (!error) {
+          document.getElementById('b-amount').value = '';
           await loadAll();
         }
       });
