@@ -44,7 +44,7 @@
 
       <!-- Widoczne tylko gdy admin ustawil booster temu wspolnikowi
            (tabela naxer_boosters) - patrz loadNaxerBooster() w JS. -->
-      <section class="card naxer-booster" id="naxer-booster" hidden>
+      <section class="card naxer-booster fire-ring" id="naxer-booster" hidden>
         <div class="naxer-booster-title">NAXER BOOSTER</div>
         <div class="grid-stats">
           <div class="card stat">
@@ -60,6 +60,13 @@
             <div class="label">1/12</div>
             <div class="value" id="booster-monthly">—</div>
           </div>
+        </div>
+        <button type="button" class="secondary" id="booster-toggle" style="margin-top:14px;">Rozwiń</button>
+        <div class="table-wrap" id="booster-schedule-wrap" hidden style="margin-top:12px;">
+          <table>
+            <thead><tr><th>Miesiąc</th><th>Wpłata</th></tr></thead>
+            <tbody id="booster-schedule-tbody"></tbody>
+          </table>
         </div>
       </section>
 
@@ -262,6 +269,9 @@
       { max: Infinity, pct: 20 },
     ];
 
+    const boosterMonthFmt = new Intl.DateTimeFormat('pl-PL', { month: 'long', year: 'numeric' });
+    const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
     function renderNaxerBooster(amountPln) {
       const box = document.getElementById('naxer-booster');
       const amount = Number(amountPln);
@@ -276,6 +286,24 @@
       document.getElementById('booster-rate').textContent = tier.pct + '% rocznie';
       document.getElementById('booster-monthly').textContent = money(monthly);
       box.hidden = false;
+
+      // Rozwijana lista: 12 kolejnych miesiecy, kazdy z ta sama rata (1/12).
+      const scheduleBody = document.getElementById('booster-schedule-tbody');
+      const today = new Date();
+      let rowsHtml = '';
+      for (let i = 1; i <= 12; i++) {
+        const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+        rowsHtml += `<tr><td>${capitalize(boosterMonthFmt.format(d))}</td><td>${money(monthly)}</td></tr>`;
+      }
+      scheduleBody.innerHTML = rowsHtml;
+
+      const toggle = document.getElementById('booster-toggle');
+      const wrap = document.getElementById('booster-schedule-wrap');
+      toggle.addEventListener('click', () => {
+        const nowHidden = !wrap.hidden;
+        wrap.hidden = nowHidden;
+        toggle.textContent = nowHidden ? 'Rozwiń' : 'Zwiń';
+      });
     }
 
     function renderAllocations(totalContributed) {

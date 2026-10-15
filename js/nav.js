@@ -12,7 +12,6 @@ const FLAME_TARGET = { href: 'naxer_calculator.html', label: 'NAXER' };
 
 const ARROW_LEFT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>';
 const ARROW_RIGHT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
-const FLAME = '<svg class="flame-icon" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round" aria-hidden="true"><path d="M12 12c2-2.96 0-7-1-8 0 3.038-1.773 4.741-3 6-1.226 1.26-2 3.24-2 5a6 6 0 1 0 12 0c0-1.532-1.056-3.94-2-5-1.786 3-2.791 3-4 2z"/></svg>';
 
 function circleButton({ svg, label, target, extraClass = '' }) {
   const btn = document.createElement('button');
@@ -45,10 +44,11 @@ function init() {
   group.appendChild(circleButton({ svg: ARROW_LEFT, label: 'Poprzednia karta', target: prev }));
   group.appendChild(circleButton({ svg: ARROW_RIGHT, label: 'Następna karta', target: next }));
   group.appendChild(circleButton({
-    svg: ARROW_RIGHT + FLAME,
+    // cale kolko "plonie" (patrz .fire-ring w CSS) - nie potrzeba juz osobnej ikonki plomienia
+    svg: ARROW_RIGHT,
     label: FLAME_TARGET ? FLAME_TARGET.label : 'Inna strona',
     target: FLAME_TARGET,
-    extraClass: 'nav-flame',
+    extraClass: 'nav-flame fire-ring',
   }));
 
   logout.parentElement.insertBefore(group, logout);
